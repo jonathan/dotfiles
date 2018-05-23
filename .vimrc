@@ -23,7 +23,6 @@ Plug 'mileszs/ack.vim'
 Plug 'w0rp/ale'
 Plug 'itchyny/lightline.vim'
 Plug 'christoomey/vim-tmux-navigator'
-Plug 'jeetsukumaran/vim-buffergator'
 Plug 'airblade/vim-gitgutter'
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
@@ -32,6 +31,10 @@ Plug 'junegunn/fzf.vim'
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
 Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
 Plug 'kovisoft/paredit', { 'for': ['clojure', 'scheme', 'scala'] }
+
+" Vim colors
+Plug 'dracula/vim', { 'as': 'dracula' }
+Plug 'aradunovic/perun.vim'
 
 " Plugin outside ~/.vim/plugged with post-update hook
 "Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
@@ -123,25 +126,6 @@ map <Leader>n :NERDTreeToggle<CR>
 "autocmd StdinReadPre * let s:std_in=1
 "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
-"let g:vimfiler_enable_clipboard = 0
-
-"call vimfiler#custom#profile('default', 'context', {
-"      \ 'safe' : 0,
-"      \ 'auto_expand' : 1,
-"      \ 'parent' : 0,
-"      \ })
-"let g:vimfiler_as_default_explorer = 1
-"autocmd VimEnter * VimFilerExplorer
-"autocmd VimEnter * if !argc() | VimFiler | endif
-
-" autocmd MyAutoCmd FileType vimfiler call s:vimfiler_my_settings()
-"autocmd FileType vimfiler call s:vimfiler_my_settings()
-"function! s:vimfiler_my_settings() abort "{{{
-
-"  nnoremap <silent><buffer><expr> gy vimfiler#do_action('tabopen')
-  "nmap <buffer> p <Plug>(vimfiler_quick_look)
-"  nmap <buffer> <Tab> <Plug>(vimfiler_switch_to_other_window)
-
 "endfunction"}}}
 
 " ALE
@@ -201,7 +185,9 @@ endfunction
 
 " theme
 syntax enable
-colorscheme desert
+"colorscheme desert
+"colorscheme perun
+colorscheme dracula
 
 set number
 set expandtab
