@@ -1,5 +1,7 @@
 # dotfiles
-My config files. These configs/plugins/tools come from these various sites:
+
+## References
+These configs/plugins/tools come from these various sites:
 https://blog.bugsnag.com/tmux-and-vim/
 https://statico.github.io/vim3.html
 https://github.com/statico/dotfiles
@@ -8,6 +10,7 @@ https://www.tmuxcheatsheet.com
 https://draculatheme.com
 
 
+## Requirements
 I'm using zim for my zsh config/plugins. Will be trying out zplug soon.
 https://github.com/zimfw/zimfw
 https://github.com/zplug/zplug
