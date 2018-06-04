@@ -183,6 +183,14 @@ function! s:MaybeUpdateLightline()
   end
 endfunction
 
+" Use MacOS clipboard
+vnoremap \y y:call system("pbcopy", getreg("\""))<CR>
+nnoremap \p :call setreg("\"", system("pbpaste"))<CR>p
+
+noremap YY "+y<CR>
+noremap P "+gP<CR>
+noremap XX "+x<CR>
+
 " theme
 syntax enable
 "colorscheme desert
