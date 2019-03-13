@@ -21,7 +21,8 @@ Plug 'junegunn/vim-easy-align'
 Plug 'junegunn/vim-github-dashboard'
 Plug 'SirVer/ultisnips'
 Plug 'honza/vim-snippets'
-Plug 'Shougo/denite.nvim'
+Plug 'tpope/vim-surround'
+" Plug 'Shougo/denite.nvim'
 Plug 'Shougo/vimfiler'
 Plug 'Shougo/neoyank.vim'
 Plug 'mileszs/ack.vim'
@@ -31,6 +32,7 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'airblade/vim-gitgutter'
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
+Plug 'easymotion/vim-easymotion'
 
 " On-demand loading
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
@@ -85,41 +87,57 @@ set rtp+=/usr/local/opt/fzf
 nmap ; :Buffers<CR>
 nmap <Leader>r :Tags<CR>
 nmap <Leader>t :Files<CR>
+nmap <Leader>h :History<CR>
 
 " FZF color scheme updater from https://github.com/junegunn/fzf.vim/issues/59
-function! s:update_fzf_colors()
-  let rules =
-  \ { 'fg':      [['Normal',       'fg']],
-    \ 'bg':      [['Normal',       'bg']],
-    \ 'hl':      [['String',       'fg']],
-    \ 'fg+':     [['CursorColumn', 'fg'], ['Normal', 'fg']],
-    \ 'bg+':     [['CursorColumn', 'bg']],
-    \ 'hl+':     [['String',       'fg']],
-    \ 'info':    [['PreProc',      'fg']],
-    \ 'prompt':  [['Conditional',  'fg']],
-    \ 'pointer': [['Exception',    'fg']],
-    \ 'marker':  [['Keyword',      'fg']],
-    \ 'spinner': [['Label',        'fg']],
-    \ 'header':  [['Comment',      'fg']] }
-  let cols = []
-  for [name, pairs] in items(rules)
-    for pair in pairs
-      let code = synIDattr(synIDtrans(hlID(pair[0])), pair[1])
-      if !empty(name) && code != ''
-        call add(cols, name.':'.code)
-        break
-      endif
-    endfor
-  endfor
-  let s:orig_fzf_default_opts = get(s:, 'orig_fzf_default_opts', $FZF_DEFAULT_OPTS)
-  let $FZF_DEFAULT_OPTS = s:orig_fzf_default_opts .
-        \ (empty(cols) ? '' : (' --color='.join(cols, ',')))
-endfunction
+" function! s:update_fzf_colors()
+"   let rules =
+"   \ { 'fg':      [['Normal',       'fg']],
+"     \ 'bg':      [['Normal',       'bg']],
+"     \ 'hl':      [['String',       'fg']],
+"     \ 'fg+':     [['CursorColumn', 'fg'], ['Normal', 'fg']],
+"     \ 'bg+':     [['CursorColumn', 'bg']],
+"     \ 'hl+':     [['String',       'fg']],
+"     \ 'info':    [['PreProc',      'fg']],
+"     \ 'prompt':  [['Conditional',  'fg']],
+"     \ 'pointer': [['Exception',    'fg']],
+"     \ 'marker':  [['Keyword',      'fg']],
+"     \ 'spinner': [['Label',        'fg']],
+"     \ 'header':  [['Comment',      'fg']] }
+"   let cols = []
+"   for [name, pairs] in items(rules)
+"     for pair in pairs
+"       let code = synIDattr(synIDtrans(hlID(pair[0])), pair[1])
+"       if !empty(name) && code != ''
+"         call add(cols, name.':'.code)
+"         break
+"       endif
+"     endfor
+"   endfor
+"   let s:orig_fzf_default_opts = get(s:, 'orig_fzf_default_opts', $FZF_DEFAULT_OPTS)
+"   let $FZF_DEFAULT_OPTS = s:orig_fzf_default_opts .
+"         \ (empty(cols) ? '' : (' --color='.join(cols, ',')))
+" endfunction
+" 
+" augroup _fzf
+"   autocmd!
+"   autocmd VimEnter,ColorScheme * call <sid>update_fzf_colors()
+" augroup END
 
-augroup _fzf
-  autocmd!
-  autocmd VimEnter,ColorScheme * call <sid>update_fzf_colors()
-augroup END
+let g:fzf_colors =
+\ { 'fg':      ['fg', 'Normal'],
+  \ 'bg':      ['bg', 'Normal'],
+  \ 'hl':      ['fg', 'Comment'],
+  \ 'fg+':     ['fg', 'CursorLine', 'CursorColumn', 'Normal'],
+  \ 'bg+':     ['bg', 'CursorLine', 'CursorColumn'],
+  \ 'hl+':     ['fg', 'Statement'],
+  \ 'info':    ['fg', 'PreProc'],
+  \ 'border':  ['fg', 'Ignore'],
+  \ 'prompt':  ['fg', 'Conditional'],
+  \ 'pointer': ['fg', 'Exception'],
+  \ 'marker':  ['fg', 'Keyword'],
+  \ 'spinner': ['fg', 'Label'],
+  \ 'header':  ['fg', 'Comment'] }
 
 " Tell ack.vim to use ag (the Silver Searcher) instead
 let g:ackprg = 'ag --vimgrep'

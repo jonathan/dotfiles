@@ -77,19 +77,17 @@ alias la="ls -a"
 alias b="bundle"
 alias be="bundle exec"
 alias gts="git tag --sort version:refname"
-# alias fig to docker-compose because that's how the cool kids roll
-alias fig="docker-compose"
-
-# other useful aliases
-alias clear_pids="rm ~/projects/*/tmp/pids/server.pid"
-alias restart_docker="docker-compose kill; clear_pids; docker-compose up -d; clear; docker-compose ps"
 
 #alias restart_dock=osascript -e 'quit application "Dock"'
 
 export JAVA_HOME=$(/usr/libexec/java_home)
-export SPARK_HOME="$HOME/lib/spark-2.0.2-bin-hadoop2.4"
 
-export PATH="$SPARK_HOME/bin:$SPARK_HOME/sbin:$HOME/.rbenv/bin:$PATH"
+# Store sensative env vars here
+if [ -e ~/.env_vars.zsh ]; then
+  source ~/.env_vars.zsh
+fi
+
+export PATH="$HOME/.rbenv/bin:$PATH"
 
 bindkey -M vicmd "k" history-substring-search-up
 bindkey -M vicmd "j" history-substring-search-down
