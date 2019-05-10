@@ -33,11 +33,30 @@ Plug 'airblade/vim-gitgutter'
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
 Plug 'easymotion/vim-easymotion'
+Plug 'leafgarland/typescript-vim'
 
 " On-demand loading
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
 Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
 Plug 'kovisoft/paredit', { 'for': ['clojure', 'scheme', 'scala'] }
+
+Plug 'autozimu/LanguageClient-neovim', {
+    \ 'branch': 'next',
+    \ 'do': 'bash install.sh',
+    \ }
+
+" Required for operations modifying multiple buffers like rename.
+set hidden
+
+let g:LanguageClient_serverCommands = {
+    \ 'clojure': ['~/.bin/clojure-lsp'],
+    \ }
+
+nnoremap <F5> :call LanguageClient_contextMenu()<CR>
+" Or map each action separately
+nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
+nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
+nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 
 " Vim colors
 Plug 'dracula/vim', { 'as': 'dracula' }
@@ -156,6 +175,20 @@ let g:ale_sign_warning = '▲'
 let g:ale_sign_error = '✗'
 highlight link ALEWarningSign String
 highlight link ALEErrorSign Title
+
+let g:ale_linters = {
+\   'javascript': ['eslint'],
+\   'typescript': ['eslint']
+\}
+
+
+let g:ale_fixers = {
+\    'javascript': ['eslint'],
+\    'typescript': ['prettier'],
+\    'scss': ['prettier'],
+\    'html': ['prettier']
+\}
+"let g:ale_fix_on_save = 1
 
 " Lightline
 let g:lightline = {

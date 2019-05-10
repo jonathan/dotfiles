@@ -87,7 +87,9 @@ if [ -e ~/.env_vars.zsh ]; then
   source ~/.env_vars.zsh
 fi
 
-export PATH="$HOME/.rbenv/bin:$PATH"
+export GRAAL_HOME="$HOME/tools/graalvm-ce-19.0.0/Contents/Home"
+
+export PATH="/usr/local/bin:$HOME/bin:$GRAAL_HOME/bin:$HOME/.rbenv/bin:$PATH"
 
 bindkey -M vicmd "k" history-substring-search-up
 bindkey -M vicmd "j" history-substring-search-down
