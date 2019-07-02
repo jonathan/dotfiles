@@ -80,16 +80,25 @@ alias gts="git tag --sort version:refname"
 
 #alias restart_dock=osascript -e 'quit application "Dock"'
 
+# Compiler flags
+export LDFLAGS="-L/usr/local/opt/llvm/lib -L/usr/local/opt/libffi/lib -L/usr/local/opt/openssl/lib"
+export CPPFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/openssl/include"
+
+export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
+
 export JAVA_HOME=$(/usr/libexec/java_home)
+export GRAAL_HOME="$HOME/tools/graalvm-ce-19.0.0/Contents/Home"
+export LLVM_HOME="/usr/local/opt/llvm"
+
+export SOURCEKIT_TOOLCHAIN_PATH="/Library/Developer/Toolchains/swift-latest.xctoolchain"
 
 # Store sensative env vars here
 if [ -e ~/.env_vars.zsh ]; then
   source ~/.env_vars.zsh
 fi
 
-export GRAAL_HOME="$HOME/tools/graalvm-ce-19.0.0/Contents/Home"
-
-export PATH="/usr/local/bin:$HOME/bin:$GRAAL_HOME/bin:$HOME/.rbenv/bin:$PATH"
+export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$GRAAL_HOME/bin:$HOME/.rbenv/bin:$PATH"
+#export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$HOME/.rbenv/bin:$PATH"
 
 bindkey -M vicmd "k" history-substring-search-up
 bindkey -M vicmd "j" history-substring-search-down
