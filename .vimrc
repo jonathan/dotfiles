@@ -34,6 +34,8 @@ Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
 Plug 'easymotion/vim-easymotion'
 Plug 'leafgarland/typescript-vim'
+Plug 'prabirshrestha/async.vim'
+Plug 'prabirshrestha/vim-lsp'
 
 " On-demand loading
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
@@ -51,6 +53,14 @@ set hidden
 let g:LanguageClient_serverCommands = {
     \ 'clojure': ['~/.bin/clojure-lsp'],
     \ }
+
+if executable('sourcekit-lsp')
+    au User lsp_setup call lsp#register_server({
+        \ 'name': 'sourcekit-lsp',
+        \ 'cmd': {server_info->['sourcekit-lsp']},
+        \ 'whitelist': ['swift'],
+        \ })
+endif
 
 nnoremap <F5> :call LanguageClient_contextMenu()<CR>
 " Or map each action separately
