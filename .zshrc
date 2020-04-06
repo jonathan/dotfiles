@@ -1,59 +1,128 @@
-export ZPLUG_HOME=/usr/local/opt/zplug
-source $ZPLUG_HOME/init.zsh
-# User configuration sourced by interactive shells
-#
-# INTERNAL UTILITY FUNCTIONS {{{1
-
-# Returns whether the given command is executable or aliased.
-_has() {
-  return $( whence $1 >/dev/null )
-}
-
-# Returns whether the given statement executed cleanly. Try to avoid this
-# because this slows down shell loading.
-_try() {
-  return $( eval $* >/dev/null 2>&1 )
-}
-
-# Returns whether the current host type is what we think it is. (HOSTTYPE is
-# set later.)
-_is() {
-  return $( [ "$HOSTTYPE" = "$1" ] )
-}
-
-# Returns whether out terminal supports color.
-_color() {
-  return $( [ -z "$INSIDE_EMACS" ] )
-}
-
-# Source zim
-if [[ -s ${ZDOTDIR:-${HOME}}/.zim/init.zsh ]]; then
-  source ${ZDOTDIR:-${HOME}}/.zim/init.zsh
-fi
-
 #export ZPLUG_HOME=/usr/local/opt/zplug
 #source $ZPLUG_HOME/init.zsh
+# Start configuration added by Zim install {{{
+#
+# User configuration sourced by interactive shells
+#
 
-# Supports oh-my-zsh plugins and the like
-#zplug "plugins/git",   from:oh-my-zsh
+# -----------------
+# Zsh configuration
+# -----------------
 
-# Also prezto
-#zplug "modules/prompt", from:prezto
+#
+# History
+#
 
-# Load if "if" tag returns true
-#zplug "lib/clipboard", from:oh-my-zsh, if:"[[ $OSTYPE == *darwin* ]]"
+# Remove older command from the history if a duplicate is to be added.
+setopt HIST_IGNORE_ALL_DUPS
 
-#zplug "modules/directory", from:zimfw
-#zplug "modules/environment", from:zimfw
-#zplug "modules/git", from:zimfw
-#zplug "modules/git-info", from:zimfw
-#zplug "modules/history", from:zimfw
-#zplug "modules/input", from:zimfw
-#zplug "modules/utility", from:zimfw
-#zplug "modules/meta", from:zimfw
-#zplug "modules/custom", from:zimfw
-#zplug "modules/prompt", from:zimfw
-#zplug "modules/completion", from:zimfw
+#
+# Input/output
+#
+
+# Set editor default keymap to emacs (`-e`) or vi (`-v`)
+bindkey -v
+
+# Prompt for spelling correction of commands.
+#setopt CORRECT
+
+# Customize spelling correction prompt.
+#SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
+
+# Remove path separator from WORDCHARS.
+WORDCHARS=${WORDCHARS//[\/]}
+
+
+# --------------------
+# Module configuration
+# --------------------
+
+#
+# completion
+#
+
+# Set a custom path for the completion dump file.
+# If none is provided, the default ${ZDOTDIR:-${HOME}}/.zcompdump is used.
+#zstyle ':zim:completion' dumpfile "${ZDOTDIR:-${HOME}}/.zcompdump-${ZSH_VERSION}"
+
+#
+# git
+#
+
+# Set a custom prefix for the generated aliases. The default prefix is 'G'.
+zstyle ':zim:git' aliases-prefix 'g'
+
+#
+# input
+#
+
+# Append `../` to your input for each `.` you type after an initial `..`
+#zstyle ':zim:input' double-dot-expand yes
+
+#
+# termtitle
+#
+
+# Set a custom terminal title format using prompt expansion escape sequences.
+# See http://zsh.sourceforge.net/Doc/Release/Prompt-Expansion.html#Simple-Prompt-Escapes
+# If none is provided, the default '%n@%m: %~' is used.
+#zstyle ':zim:termtitle' format '%1~'
+
+#
+# zsh-autosuggestions
+#
+
+# Customize the style that the suggestions are shown with.
+# See https://github.com/zsh-users/zsh-autosuggestions/blob/master/README.md#suggestion-highlight-style
+#ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=10'
+
+#
+# zsh-syntax-highlighting
+#
+
+# Set what highlighters will be used.
+# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters.md
+ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
+
+# Customize the main highlighter styles.
+# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/main.md#how-to-tweak-it
+#typeset -A ZSH_HIGHLIGHT_STYLES
+#ZSH_HIGHLIGHT_STYLES[comment]='fg=10'
+
+# ------------------
+# Initialize modules
+# ------------------
+
+if [[ ${ZIM_HOME}/init.zsh -ot ${ZDOTDIR:-${HOME}}/.zimrc ]]; then
+  # Update static initialization script if it's outdated, before sourcing it
+  source ${ZIM_HOME}/zimfw.zsh init -q
+fi
+source ${ZIM_HOME}/init.zsh
+
+# ------------------------------
+# Post-init module configuration
+# ------------------------------
+
+#
+# zsh-history-substring-search
+#
+
+# Bind ^[[A/^[[B manually so up/down works both before and after zle-line-init
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# Bind up and down keys
+zmodload -F zsh/terminfo +p:terminfo
+if [[ -n ${terminfo[kcuu1]} && -n ${terminfo[kcud1]} ]]; then
+  bindkey ${terminfo[kcuu1]} history-substring-search-up
+  bindkey ${terminfo[kcud1]} history-substring-search-down
+fi
+
+bindkey '^P' history-substring-search-up
+bindkey '^N' history-substring-search-down
+bindkey -M vicmd 'k' history-substring-search-up
+bindkey -M vicmd 'j' history-substring-search-down
+# }}} End configuration added by Zim install
 
 # Load theme file
 #zplug 'dracula/zsh', as:theme
@@ -65,7 +134,7 @@ SAVEHIST=10000
 bindkey -v
 # End of lines configured by zsh-newuser-install
 # The following lines were added by compinstall
-zstyle :compinstall filename "/Users/jonathan.hicks/.zshrc"
+#zstyle :compinstall filename "/Users/jonathan.hicks/.zshrc"
 
 autoload -Uz compinit
 compinit
@@ -77,6 +146,8 @@ alias la="ls -a"
 alias b="bundle"
 alias be="bundle exec"
 alias gts="git tag --sort version:refname"
+alias bs="brew search"
+alias bi="brew info"
 
 #alias restart_dock=osascript -e 'quit application "Dock"'
 
@@ -86,19 +157,25 @@ export CPPFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/openssl/include"
 
 export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
 
-export JAVA_HOME=$(/usr/libexec/java_home)
-export GRAAL_HOME="$HOME/tools/graalvm-ce-19.0.0/Contents/Home"
+#export JAVA_HOME=$(/usr/libexec/java_home)
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/graalvm-ce-19.2.1/Contents/Home"
+#export GRAAL_HOME="$HOME/tools/graalvm-ce-19.1.0/Contents/Home"
 export LLVM_HOME="/usr/local/opt/llvm"
+export ERLANG_MAN="/usr/local/opt/erlang/lib/erlang/man"
 
-export SOURCEKIT_TOOLCHAIN_PATH="/Library/Developer/Toolchains/swift-latest.xctoolchain"
+#export SOURCEKIT_TOOLCHAIN_PATH="/Library/Developer/Toolchains/swift-latest.xctoolchain"
+export KITURA_NIO=1
 
 # Store sensative env vars here
 if [ -e ~/.env_vars.zsh ]; then
   source ~/.env_vars.zsh
 fi
 
-export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$GRAAL_HOME/bin:$HOME/.rbenv/bin:$PATH"
+export PATH="/usr/local/bin:/usr/local/sbin:$HOME/bin:$LLVM_HOME/bin:$JAVA_HOME/bin:$HOME/.rbenv/bin:$PATH"
 #export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$HOME/.rbenv/bin:$PATH"
+export MANPATH="$ERLANG_MAN:$MANPATH"
+
+export RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@1.1)"
 
 bindkey -M vicmd "k" history-substring-search-up
 bindkey -M vicmd "j" history-substring-search-down
@@ -119,15 +196,15 @@ if [ -e ~/.fzf ]; then
 fi
 
 # fzf + ag configuration
-if _has fzf && _has ag; then
-  export FZF_DEFAULT_COMMAND='ag --nocolor -g ""'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_ALT_C_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_DEFAULT_OPTS='
-  --color fg:242,bg:236,hl:65,fg+:15,bg+:239,hl+:108
-  --color info:108,prompt:109,spinner:108,pointer:168,marker:168
-  '
-fi
+#if _has fzf && _has ag; then
+#  export FZF_DEFAULT_COMMAND='ag --nocolor -g ""'
+#  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+#  export FZF_ALT_C_COMMAND="$FZF_DEFAULT_COMMAND"
+#  export FZF_DEFAULT_OPTS='
+#  --color fg:242,bg:236,hl:65,fg+:15,bg+:239,hl+:108
+#  --color info:108,prompt:109,spinner:108,pointer:168,marker:168
+#  '
+#fi
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm

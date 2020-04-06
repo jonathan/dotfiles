@@ -26,7 +26,7 @@ Plug 'tpope/vim-surround'
 Plug 'Shougo/vimfiler'
 Plug 'Shougo/neoyank.vim'
 Plug 'mileszs/ack.vim'
-Plug 'w0rp/ale'
+Plug 'dense-analysis/ale'
 Plug 'itchyny/lightline.vim'
 Plug 'christoomey/vim-tmux-navigator'
 Plug 'airblade/vim-gitgutter'
@@ -34,8 +34,10 @@ Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
 Plug 'easymotion/vim-easymotion'
 Plug 'leafgarland/typescript-vim'
+Plug 'HerringtonDarkholme/yats.vim'
 Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
+Plug 'git@github.com:keith/swift.vim.git'
 
 " On-demand loading
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
@@ -183,6 +185,7 @@ map <Leader>n :NERDTreeToggle<CR>
 " ALE
 let g:ale_sign_warning = '▲'
 let g:ale_sign_error = '✗'
+let g:ale_completion_enabled = 1
 highlight link ALEWarningSign String
 highlight link ALEErrorSign Title
 

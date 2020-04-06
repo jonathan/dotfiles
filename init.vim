@@ -41,6 +41,7 @@ Plug 'easymotion/vim-easymotion'
 Plug 'leafgarland/typescript-vim'
 Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
+Plug 'git@github.com:keith/swift.vim.git'
 
 " On-demand loading
 Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
@@ -59,13 +60,13 @@ let g:LanguageClient_serverCommands = {
     \ 'clojure': ['~/.bin/clojure-lsp'],
     \ }
 
-if executable('sourcekit-lsp')
-    au User lsp_setup call lsp#register_server({
-        \ 'name': 'sourcekit-lsp',
-        \ 'cmd': {server_info->['sourcekit-lsp']},
-        \ 'whitelist': ['swift'],
-        \ })
-endif
+" if executable('sourcekit-lsp')
+"     au User lsp_setup call lsp#register_server({
+"         \ 'name': 'sourcekit-lsp',
+"         \ 'cmd': {server_info->['sourcekit-lsp']},
+"         \ 'whitelist': ['swift'],
+"         \ })
+" endif
 
 nnoremap <F5> :call LanguageClient_contextMenu()<CR>
 " Or map each action separately
