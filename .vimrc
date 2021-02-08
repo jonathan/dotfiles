@@ -84,7 +84,7 @@ call plug#end()
 filetype plugin indent on
 
 " allow backspacing over everything in insert mode
-"set backspace=indent,eol,start
+set backspace=indent,eol,start
 
 set nobackup
 set nowritebackup
