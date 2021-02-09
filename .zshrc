@@ -1,5 +1,3 @@
-#export ZPLUG_HOME=/usr/local/opt/zplug
-#source $ZPLUG_HOME/init.zsh
 # Start configuration added by Zim install {{{
 #
 # User configuration sourced by interactive shells
@@ -124,9 +122,6 @@ bindkey -M vicmd 'k' history-substring-search-up
 bindkey -M vicmd 'j' history-substring-search-down
 # }}} End configuration added by Zim install
 
-# Load theme file
-#zplug 'dracula/zsh', as:theme
-
 # Lines configured by zsh-newuser-install
 HISTFILE=~/.histfile
 HISTSIZE=10000
@@ -157,19 +152,18 @@ export CPPFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/openssl/include"
 
 export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
 
-#export JAVA_HOME=$(/usr/libexec/java_home)
-export JAVA_HOME="/Library/Java/JavaVirtualMachines/graalvm-ce-19.2.1/Contents/Home"
-#export GRAAL_HOME="$HOME/tools/graalvm-ce-19.1.0/Contents/Home"
+export JAVA_HOME=$(/usr/libexec/java_home)
 export LLVM_HOME="/usr/local/opt/llvm"
 export ERLANG_MAN="/usr/local/opt/erlang/lib/erlang/man"
 
 #export SOURCEKIT_TOOLCHAIN_PATH="/Library/Developer/Toolchains/swift-latest.xctoolchain"
-export KITURA_NIO=1
 
 # Store sensative env vars here
 if [ -e ~/.env_vars.zsh ]; then
   source ~/.env_vars.zsh
 fi
+
+export GUILE_TLS_CERTIFICATE_DIRECTORY="/usr/local/etc/gnutls/"
 
 export PATH="/usr/local/bin:/usr/local/sbin:$HOME/bin:$LLVM_HOME/bin:$JAVA_HOME/bin:$HOME/.rbenv/bin:$PATH"
 #export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$HOME/.rbenv/bin:$PATH"
@@ -234,3 +228,4 @@ add-zsh-hook chpwd load-nvmrc
 load-nvmrc
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+if [ /usr/local/bin/kubectl ]; then source <(kubectl completion zsh); fi
