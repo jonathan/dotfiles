@@ -9,6 +9,7 @@ These configs/plugins/tools come from these various sites:
 * http://vimsheet.com
 * https://www.tmuxcheatsheet.com
 * https://draculatheme.com
+* https://ohmyz.sh
 
 
 ## Requirements
