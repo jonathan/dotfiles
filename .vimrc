@@ -5,56 +5,90 @@ if &compatible
  set nocompatible               " Be iMproved
 endif
 
-if empty(glob('~/.vim/autoload/plug.vim'))
-  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
+if empty(glob(data_dir . '/autoload/plug.vim'))
+  silent execute '!curl -fLo '.data_dir.'/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
   autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
-"
+
+" Set this to 1 to use ultisnips for snippet handling
+let s:using_snippets = 0
+
 " Specify a directory for plugins
 " - For Neovim: ~/.local/share/nvim/plugged
 " - Avoid using standard Vim directory names like 'plugin'
 call plug#begin('~/.vim/plugged')
 
 " Make sure you use single quotes
-Plug 'junegunn/vim-easy-align'
-Plug 'junegunn/vim-github-dashboard'
-Plug 'SirVer/ultisnips'
-Plug 'honza/vim-snippets'
+" Plug 'junegunn/vim-github-dashboard'
+Plug 'preservim/nerdtree'
 Plug 'tpope/vim-surround'
-" Plug 'Shougo/denite.nvim'
 Plug 'Shougo/vimfiler'
 Plug 'Shougo/neoyank.vim'
 Plug 'mileszs/ack.vim'
 Plug 'dense-analysis/ale'
-Plug 'itchyny/lightline.vim'
-Plug 'christoomey/vim-tmux-navigator'
 Plug 'airblade/vim-gitgutter'
-Plug '/usr/local/opt/fzf'
+" Plug '/opt/homebrew/bin/fzf'
+" Plug 'junegunn/fzf'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'easymotion/vim-easymotion'
 Plug 'leafgarland/typescript-vim'
 Plug 'HerringtonDarkholme/yats.vim'
-Plug 'prabirshrestha/async.vim'
+" Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
-Plug 'git@github.com:keith/swift.vim.git'
+Plug 'keith/swift.vim'
+Plug 'nickspoons/vim-sharpenup'
+Plug 'vim-airline/vim-airline'
+Plug 'OmniSharp/Omnisharp-vim'
+Plug 'jlcrochet/vim-razor'
+Plug 'tpope/vim-dispatch'
+Plug 'Shougo/vimproc.vim', {'do' : 'make'}
+" Autocompletion
+Plug 'prabirshrestha/asyncomplete.vim'
+" Statusline
+Plug 'itchyny/lightline.vim'
+Plug 'maximbaz/lightline-ale'
+" Snippet support
+if s:using_snippets
+  Plug 'sirver/ultisnips'
+endif
+" Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 " On-demand loading
-Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
-Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
-Plug 'kovisoft/paredit', { 'for': ['clojure', 'scheme', 'scala'] }
+" Plug 'tpope/vim-fireplace', { 'for': 'clojure' }
+" Plug 'kovisoft/paredit', { 'for': ['clojure', 'scheme', 'scala'] }
 
-Plug 'autozimu/LanguageClient-neovim', {
-    \ 'branch': 'next',
-    \ 'do': 'bash install.sh',
-    \ }
+" Plug 'autozimu/LanguageClient-neovim', {
+"     \ 'branch': 'next',
+"     \ 'do': 'bash install.sh',
+"     \ }
+
+" Vim Packages
+packadd! lightline
+
+" let g:OmniSharp_server_stdio = 0
+let g:OmniSharp_server_path = '/Users/jonathan.hicks/projects/omnisharp-osx-arm64-net6/OmniSharp'
+" let g:OmniSharp_server_path = '/Users/jonathan.hicks/projects/omnisharp-osx/omnisharp/OmniSharp.exe'
+
+" Vim colors
+packadd! dracula
+syntax enable
+colorscheme dracula
+
+" Plugin outside ~/.vim/plugged with post-update hook
+"Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+
+" Initialize plugin system
+call plug#end()
 
 " Required for operations modifying multiple buffers like rename.
 set hidden
 
-let g:LanguageClient_serverCommands = {
-    \ 'clojure': ['~/.bin/clojure-lsp'],
-    \ }
+" let g:LanguageClient_serverCommands = {
+"     \ 'clojure': ['~/.bin/clojure-lsp'],
+"     \ }
 
 if executable('sourcekit-lsp')
     au User lsp_setup call lsp#register_server({
@@ -64,24 +98,14 @@ if executable('sourcekit-lsp')
         \ })
 endif
 
-nnoremap <F5> :call LanguageClient_contextMenu()<CR>
+" nnoremap <F5> :call LanguageClient_contextMenu()<CR>
 " Or map each action separately
-nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
-nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
-nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
-
-" Vim colors
-Plug 'dracula/vim', { 'as': 'dracula' }
-Plug 'aradunovic/perun.vim'
-
-" Plugin outside ~/.vim/plugged with post-update hook
-"Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-
-" Initialize plugin system
-call plug#end()
+" nnoremap <silent> K :call LanguageClient#textDocument_hover()<CR>
+" nnoremap <silent> gd :call LanguageClient#textDocument_definition()<CR>
+" nnoremap <silent> <F2> :call LanguageClient#textDocument_rename()<CR>
 
 " Required:
-filetype plugin indent on
+filetype indent plugin on
 
 " allow backspacing over everything in insert mode
 set backspace=indent,eol,start
@@ -92,17 +116,27 @@ set history=500
 set ruler		" show the cursor position all the time
 set showcmd		" display incomplete commands
 set incsearch		" do incremental searching
+set autowrite
 
 " Don't use Ex mode, use Q for formatting
 map Q gq
 
-syntax on
 set hlsearch
 set nowrap
 set autoindent
 set tabstop=2
 set shiftwidth=2
 set expandtab
+set number
+set smarttab
+set smartindent 
+set title
+
+set hidden
+set nofixendofline
+set nostartofline
+set splitbelow
+set splitright
 
 " Always display the status line
 set laststatus=2
@@ -112,8 +146,12 @@ set laststatus=2
 let mapleader = ","
 let maplocalleader = ","
 
+" Sessions
+nmap <Leader>s :source ./Session.vim<CR>
+
 " FZF (replaces Ctrl-P, FuzzyFinder and Command-T)
-set rtp+=/usr/local/opt/fzf
+"set rtp+=/opt/homebrew/bin/fzf
+set rtp+=/opt/homebrew/opt/fzf
 "set rtp+=~/.fzf
 nmap ; :Buffers<CR>
 nmap <Leader>r :Tags<CR>
@@ -154,6 +192,19 @@ nmap <Leader>h :History<CR>
 "   autocmd!
 "   autocmd VimEnter,ColorScheme * call <sid>update_fzf_colors()
 " augroup END
+"
+augroup ColorschemePreferences
+  autocmd!
+  " Link ALE sign highlights to similar equivalents without background colours
+  autocmd ColorScheme * highlight link ALEErrorSign   WarningMsg
+  autocmd ColorScheme * highlight link ALEWarningSign ModeMsg
+  autocmd ColorScheme * highlight link ALEInfoSign    Identifier
+augroup END
+
+" Use truecolor in the terminal, when it is supported
+if has('termguicolors')
+  set termguicolors
+endif
 
 let g:fzf_colors =
 \ { 'fg':      ['fg', 'Normal'],
@@ -180,20 +231,30 @@ map <Leader>n :NERDTreeToggle<CR>
 "autocmd StdinReadPre * let s:std_in=1
 "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
-"endfunction"}}}
+" If another buffer tries to replace NERDTree, put it in the other window, and bring back NERDTree.
+autocmd BufEnter * if winnr() == winnr('h') && bufname('#') =~ 'NERD_tree_\d\+' && bufname('%') !~ 'NERD_tree_\d\+' && winnr('$') > 1 |
+    \ let buf=bufnr() | buffer# | execute "normal! \<C-W>w" | execute 'buffer'.buf | endif
+
+" Use ctrl-[hjkl] to select the active split
+nmap <silent> <c-k> :wincmd k<CR>
+nmap <silent> <c-j> :wincmd j<CR>
+nmap <silent> <c-h> :wincmd h<CR>
+nmap <silent> <c-l> :wincmd l<CR>
 
 " ALE
 let g:ale_sign_warning = '▲'
 let g:ale_sign_error = '✗'
+let g:ale_sign_info = '·'
 let g:ale_completion_enabled = 1
 highlight link ALEWarningSign String
 highlight link ALEErrorSign Title
 
 let g:ale_linters = {
-\   'javascript': ['eslint'],
-\   'typescript': ['eslint']
+\  'javascript': ['eslint'],
+\  'typescript': ['eslint'],
+\  'go': ['vim-go'],
+\  'cs': ['OmniSharp']
 \}
-
 
 let g:ale_fixers = {
 \    'javascript': ['eslint'],
@@ -202,6 +263,25 @@ let g:ale_fixers = {
 \    'html': ['prettier']
 \}
 "let g:ale_fix_on_save = 1
+
+" Asyncomplete: {{{
+let g:asyncomplete_auto_popup = 1
+let g:asyncomplete_auto_completeopt = 0
+" }}}
+
+" Sharpenup: {{{
+" All sharpenup mappings will begin with `<Space>os`, e.g. `<Space>osgd` for
+" :OmniSharpGotoDefinition
+let g:sharpenup_map_prefix = '<Space>os'
+
+let g:sharpenup_statusline_opts = { 'Text': '%s (%p/%P)' }
+let g:sharpenup_statusline_opts.Highlight = 0
+
+augroup OmniSharpIntegrations
+  autocmd!
+  autocmd User OmniSharpProjectUpdated,OmniSharpReady call lightline#update()
+augroup END
+" }}}
 
 " Lightline
 let g:lightline = {
@@ -215,12 +295,26 @@ let g:lightline = {
 \   'linter_errors': 'LightlineLinterErrors',
 \   'linter_ok': 'LightlineLinterOK'
 \ },
+\ 'inactive': {
+\   'right': [['lineinfo'], ['percent'], ['sharpenup']]
+\ },
+\ 'component': {
+\   'sharpenup': sharpenup#statusline#Build()
+\ },
 \ 'component_type': {
 \   'readonly': 'error',
 \   'linter_warnings': 'warning',
 \   'linter_errors': 'error'
 \ },
 \ }
+
+" Use unicode chars for ale indicators in the statusline
+let g:lightline#ale#indicator_checking = "\uf110 "
+let g:lightline#ale#indicator_infos = "\uf129 "
+let g:lightline#ale#indicator_warnings = "\uf071 "
+let g:lightline#ale#indicator_errors = "\uf05e "
+let g:lightline#ale#indicator_ok = "\uf00c "
+" }}}
 
 function! LightlineLinterWarnings() abort
   let l:counts = ale#statusline#Count(bufnr(''))
@@ -252,6 +346,68 @@ function! s:MaybeUpdateLightline()
   end
 endfunction
 
+" Coc
+let g:coc_global_extensions = ['coc-json', 'coc-git', 'coc-go', 'coc-tsserver']
+
+" vim-go
+
+" Go syntax highlighting
+let g:go_highlight_fields = 1
+let g:go_highlight_functions = 1
+let g:go_highlight_function_calls = 1
+let g:go_highlight_extra_types = 1
+let g:go_highlight_operators = 1
+
+" Auto formatting and importing
+let g:go_fmt_autosave = 1
+let g:go_fmt_command = "goimports"
+
+" Status line types/signatures
+let g:go_auto_type_info = 1
+
+" Run :GoBuild or :GoTestCompile based on the go file
+function! s:build_go_files()
+  let l:file = expand('%')
+  if l:file =~# '^\f\+_test\.go$'
+    call go#test#Test(0, 1)
+  elseif l:file =~# '^\f\+\.go$'
+    call go#cmd#Build(0)
+  endif
+endfunction
+
+" OmniSharp: {{{
+let g:OmniSharp_popup_position = 'peek'
+if has('nvim')
+  let g:OmniSharp_popup_options = {
+  \ 'winblend': 30,
+  \ 'winhl': 'Normal:Normal,FloatBorder:ModeMsg',
+  \ 'border': 'rounded'
+  \}
+else
+  let g:OmniSharp_popup_options = {
+  \ 'highlight': 'Normal',
+  \ 'padding': [0],
+  \ 'border': [1],
+  \ 'borderchars': ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+  \ 'borderhighlight': ['ModeMsg']
+  \}
+endif
+let g:OmniSharp_popup_mappings = {
+\ 'sigNext': '<C-n>',
+\ 'sigPrev': '<C-p>',
+\ 'pageDown': ['<C-f>', '<PageDown>'],
+\ 'pageUp': ['<C-b>', '<PageUp>']
+\}
+
+if s:using_snippets
+  let g:OmniSharp_want_snippet = 1
+endif
+
+let g:OmniSharp_highlight_groups = {
+\ 'ExcludedCode': 'NonText'
+\}
+" }}}
+
 " Use MacOS clipboard
 vnoremap \y y:call system("pbcopy", getreg("\""))<CR>
 nnoremap \p :call setreg("\"", system("pbpaste"))<CR>p
@@ -260,15 +416,9 @@ noremap YY "+y<CR>
 noremap P "+gP<CR>
 noremap XX "+x<CR>
 
-" theme
-syntax enable
-"colorscheme desert
-"colorscheme perun
-colorscheme dracula
-
-set number
-set expandtab
-set smarttab
-set autoindent 
-set smartindent 
-
+" Load all plugins now.
+" Plugins need to be added to runtimepath before helptags can be generated.
+packloadall
+" Load all of the helptags now, after plugins have been loaded.
+" All messages and errors will be ignored.
+silent! helptags ALL

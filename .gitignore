@@ -1,1 +1,5 @@
 *.swp
+
+# Machine-local / secrets, sourced by .zshrc but never tracked
+.env_vars.zsh
+.bootstrap_rc
