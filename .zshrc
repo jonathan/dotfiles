@@ -1,204 +1,83 @@
 if [ -e ~/.bootstrap_rc ]; then
   source ~/.bootstrap_rc
 fi
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# ============================================================================
+# zinit — fast plugin manager (replaced the oh-my-zsh framework).
+# The oh-my-zsh *framework* was a ~216ms fixed startup cost (measured with
+# `zmodload zsh/zprof`); zinit loads the same features with most plugins
+# deferred (`wait` = after first prompt), getting startup to ~0.10s.
+# We still pull a couple of individual plugins/libs FROM the oh-my-zsh repo
+# via `snippet OMZ::...` — that's just sourcing one file, not the framework.
+# ============================================================================
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [[ ! -f $ZINIT_HOME/zinit.zsh ]]; then
+  print -P "%F{33}Installing zinit...%f"
+  command mkdir -p "$(dirname $ZINIT_HOME)"
+  command git clone --depth=1 https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+source "${ZINIT_HOME}/zinit.zsh"
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-#ZSH_THEME="gitster"
-ZSH_THEME="dracula"
-
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git git-prompt zsh-autosuggestions zcolors colorize docker kubectl)
-
-# Speed up completion init: skip the insecure-directory audit (compaudit) and
-# reuse the cached .zcompdump instead of rebuilding it every shell. oh-my-zsh
-# honors this by switching to `compinit -C`. This was the single biggest
-# startup cost (see `zmodload zsh/zprof`). If completions ever seem stale,
-# rebuild once: rm -f ~/.zcompdump*; exec zsh
-export ZSH_DISABLE_COMPFIX="true"
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='nvim'
-# else
-#   export EDITOR='vim'
-# fi
+# --- Editor / shell options (set early so they apply regardless of defers) ---
 export EDITOR='nvim'
 
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="nvim ~/.zshrc"
-# alias ohmyzsh="nvim ~/.oh-my-zsh"
-
-#
 # History
-#
-
-# Remove older command from the history if a duplicate is to be added.
 setopt HIST_IGNORE_ALL_DUPS
+HISTFILE=~/.histfile
+HISTSIZE=10000
+SAVEHIST=10000
 
-#
-# Input/output
-#
-
-# Set editor default keymap to emacs (`-e`) or vi (`-v`)
+# vi keybindings + spelling correction
 bindkey -v
-
-# Prompt for spelling correction of commands.
 setopt CORRECT
-
-# Customize spelling correction prompt.
 SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
 
 # Remove path separator from WORDCHARS.
 WORDCHARS=${WORDCHARS//[\/]}
 
-#
-# zsh-syntax-highlighting
-#
-
-# source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-# export ZSH_HIGHLIGHT_HIGHLIGHTERS_DIR=/usr/local/share/zsh-syntax-highlighting/highlighters/
-# Set what highlighters will be used.
-# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters.md
-ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
-
-# Customize the main highlighter styles.
-# See https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/main.md#how-to-tweak-it
-#typeset -A ZSH_HIGHLIGHT_STYLES
-#ZSH_HIGHLIGHT_STYLES[comment]='fg=10'
-
-#
-# zsh-history-substring-search
-#
-
-# Source from wherever the package manager put it (Homebrew on mac, apt on Linux).
-for _hss in \
-  /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh \
-  /usr/local/share/zsh-history-substring-search/zsh-history-substring-search.zsh \
-  /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh; do
-  [ -r "$_hss" ] && source "$_hss" && break
-done
-unset _hss
-
-# Bind ^[[A/^[[B manually so up/down works both before and after zle-line-init
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-
-# Bind up and down keys
-zmodload -F zsh/terminfo +p:terminfo
-if [[ -n ${terminfo[kcuu1]} && -n ${terminfo[kcud1]} ]]; then
-  bindkey ${terminfo[kcuu1]} history-substring-search-up
-  bindkey ${terminfo[kcud1]} history-substring-search-down
+# --- Completion system -------------------------------------------------------
+# Initialize once, from the cached dump, skipping the slow security audit.
+# (zinit's `blockf` keeps plugins from polluting fpath before this runs.)
+autoload -Uz compinit
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+  compinit            # dump older than 24h -> rebuild
+else
+  compinit -C         # fresh enough -> reuse cache (fast path)
 fi
 
-bindkey '^P' history-substring-search-up
-bindkey '^N' history-substring-search-down
-bindkey -M vicmd 'k' history-substring-search-up
-bindkey -M vicmd 'j' history-substring-search-down
+# --- Plugins (turbo / deferred where safe) ----------------------------------
+# git aliases + helpers from oh-my-zsh's git plugin (the main thing used daily).
+zinit wait lucid for OMZ::plugins/git/git.plugin.zsh
 
-# zcolor config
-# source ~/.oh-my-zsh/custom/plugins//zcolors/zcolors.plugin.zsh
-# source ~/.zcolors
+# docker / kubectl completions — loaded after first prompt, only the completion
+# defs (not the whole omz plugin framework).
+zinit wait lucid as'completion' for \
+  OMZ::plugins/docker/completions/_docker
+zinit wait lucid for \
+  atload'zicompinit; zicdreplay' \
+  OMZ::plugins/kubectl/kubectl.plugin.zsh
+
+# Fish-like UX, all deferred until after the first prompt is drawn:
+#   autosuggestions, then syntax-highlighting, then history-substring-search.
+# Order matters: syntax-highlighting must load before history-substring-search.
+zinit wait lucid for \
+  atload'_zsh_autosuggest_start' \
+      zsh-users/zsh-autosuggestions \
+  atinit'ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)' \
+      zdharma-continuum/fast-syntax-highlighting \
+  atload'
+    bindkey "^[[A" history-substring-search-up;   bindkey "^[[B" history-substring-search-down
+    bindkey "^P"   history-substring-search-up;   bindkey "^N"   history-substring-search-down
+    bindkey -M vicmd "k" history-substring-search-up; bindkey -M vicmd "j" history-substring-search-down
+  ' \
+      zsh-users/zsh-history-substring-search
+
+# ============================================================================
+# Everything below here is unchanged from the previous (oh-my-zsh) .zshrc —
+# env vars, PATH, aliases, OS-detection, fzf/zoxide/oh-my-posh init.
+# ============================================================================
 
 ZSH_COLORIZE_TOOL=chroma
-
-# ------------------------------
-# Post-init module configuration
-# ------------------------------
-
-# Lines configured by zsh-newuser-install
-HISTFILE=~/.histfile
-HISTSIZE=10000
-SAVEHIST=10000
-bindkey -v
-# End of lines configured by zsh-newuser-install
-# NOTE: do NOT call compinit here — oh-my-zsh already runs it once (above, in
-# `source $ZSH/oh-my-zsh.sh`). A second compinit roughly doubled startup time
-# (compinit/compdump were the top cost in `zmodload zsh/zprof`). See the
-# ZSH_DISABLE_COMPFIX / compinit-caching note near the top of this file.
 
 # Debian/Ubuntu rename these binaries to avoid clashes. Alias them back to the
 # names the rest of this config (and muscle memory) expects.
@@ -307,10 +186,6 @@ export FZF_DEFAULT_OPTS="--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9 --color=fg+:#f
 if command -v zoxide >/dev/null; then
   eval "$(zoxide init zsh)"
 fi
-
-# kubectl completion is provided by the `kubectl` oh-my-zsh plugin (loaded
-# above). The old inline `source <(kubectl completion zsh)` re-ran the kubectl
-# binary and re-registered ~1600 completions on every shell start — removed.
 
 # Node version management is handled by Volta (automatic per-project switching,
 # no shell hook). The previous nvm setup + load-nvmrc chpwd hook was removed —

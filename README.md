@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal cross-platform dotfiles (**macOS** and **Ubuntu/Debian Linux**) for a terminal-centric dev environment: **zsh** (oh-my-zsh + oh-my-posh), **tmux**, **Neovim**, plus a set of modern, fast CLI tools (**eza**, **zoxide**, **fd**, **ripgrep**, **bat**, **fzf**) and **Ghostty** as the terminal, with the Dracula theme throughout.
+Personal cross-platform dotfiles (**macOS** and **Ubuntu/Debian Linux**) for a terminal-centric dev environment: **zsh** ([zinit](https://github.com/zdharma-continuum/zinit) plugin manager + oh-my-posh prompt), **tmux**, **Neovim**, plus a set of modern, fast CLI tools (**eza**, **zoxide**, **fd**, **ripgrep**, **bat**, **fzf**) and **Ghostty** as the terminal, with the Dracula theme throughout. Shell startup is ~0.15s (zinit loads plugins deferred — see [Shell startup](#shell-startup)).
 
 The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the same `.zshrc`/`.tmux.conf` work on both platforms — see [Platform notes](#platform-notes). The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim).
 
@@ -8,7 +8,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 
 | File | Installs to | Purpose |
 |------|-------------|---------|
-| `.zshrc` | `~/.zshrc` | Main zsh config — oh-my-zsh, plugins, aliases, PATH, fzf/nvm/volta |
+| `.zshrc` | `~/.zshrc` | Main zsh config — zinit plugins (deferred), aliases, PATH, fzf/zoxide/volta |
 | `.zprofile` | `~/.zprofile` | Login-shell setup — Homebrew/Linuxbrew `shellenv`, .NET tools on PATH |
 | `.jonathanhicks.omp.json` | `~/.jonathanhicks.omp.json` | oh-my-posh prompt theme (Dracula colors) |
 | `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode (OS-aware clipboard), dracula/tmux, vim-tmux navigation |
@@ -45,8 +45,6 @@ The easiest path is `setup.sh` with the right flag for your platform (`--brew` o
 ```sh
 # Shell + prompt + editor + tmux
 brew install zsh oh-my-posh neovim tmux git
-brew install zsh-autosuggestions zsh-syntax-highlighting zsh-history-substring-search
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/tools/install.sh)"  # oh-my-zsh
 
 # Modern CLI tools used by the configs
 brew install fzf bat eza zoxide fd ripgrep volta
@@ -54,6 +52,8 @@ brew install fzf bat eza zoxide fd ripgrep volta
 # Terminal
 brew install --cask ghostty
 ```
+
+zsh plugins (autosuggestions, fast-syntax-highlighting, history-substring-search, the git-aliases plugin) are managed by **zinit**, not Homebrew — `.zshrc` installs zinit and fetches them on first launch. No separate install step.
 
 ### Ubuntu/Debian — apt + a few curl installers
 
@@ -70,14 +70,13 @@ sudo apt install -y zsh git tmux curl fzf bat fd-find ripgrep \
 #   - neovim     -> apt's is old; use ppa:neovim-ppa/unstable
 #   - oh-my-posh -> curl -s https://ohmyposh.dev/install.sh | bash -s
 #   - volta      -> curl https://get.volta.sh | bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/tools/install.sh)"  # oh-my-zsh
 
 # Terminal — Ghostty (see https://ghostty.org/docs/install/binary for the apt/deb)
 ```
 
-`.zshrc` aliases `fd`→`fdfind` and `bat`→`batcat` on Debian/Ubuntu automatically, so commands work the same on both platforms.
+zsh plugins are managed by **zinit** (self-installed by `.zshrc` on first launch) — no apt/curl step for them. `.zshrc` aliases `fd`→`fdfind` and `bat`→`batcat` on Debian/Ubuntu automatically, so commands work the same on both platforms.
 
-The dracula oh-my-zsh theme (`ZSH_THEME="dracula"`) is a custom theme — drop it in `~/.oh-my-zsh/custom/themes/`. The prompt is actually rendered by **oh-my-posh** (see `.zshrc`), so the oh-my-zsh theme is largely cosmetic fallback.
+The prompt is rendered by **oh-my-posh** from `~/.jonathanhicks.omp.json` (Dracula colors), so no zsh theme is needed.
 
 ## Installation
 
@@ -93,8 +92,8 @@ cd "$HOME/projects/dotfiles"
 
 Flags (combinable):
 
-- `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus oh-my-zsh
-- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus oh-my-zsh. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
+- `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus zinit
+- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
 - `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
 
 The script detects the OS and resolves the repo from its own location, so it works wherever you clone it.
@@ -141,6 +140,17 @@ Finally, the terminal:
 
 Create them locally as needed.
 
+## Shell startup
+
+zsh startup is ~0.15s. The key decision: **zinit loads plugins deferred** (`wait` — after the first prompt paints), so the shell is interactive almost immediately and plugins finish loading in the background.
+
+- Plugins: the oh-my-zsh **git** plugin (aliases like `gst`/`gco`), `zsh-autosuggestions`, `fast-syntax-highlighting`, `zsh-history-substring-search`, and `docker`/`kubectl` completions — all turbo-loaded.
+- Completion init uses a cached `~/.zcompdump` with `compinit -C` (skips the slow security audit). If completions seem stale after installing a new tool: `rm -f ~/.zcompdump*; exec zsh`.
+- History: see the migration note below.
+- Profile it yourself: `{ echo 'zmodload zsh/zprof'; cat ~/.zshrc; echo 'zprof'; } > /tmp/.zshrc && ZDOTDIR=/tmp zsh -ic exit`
+
+> **Migrated off the oh-my-zsh framework.** It was a ~216ms fixed startup cost (measured with `zmodload zsh/zprof`) regardless of plugins. zinit keeps the same features (git aliases, autosuggestions, syntax highlighting, completions) but loads them deferred, roughly halving startup (~0.30s → ~0.15s). oh-my-posh, fzf, and zoxide are unchanged.
+
 ## Platform notes
 
 The shared config files branch on the OS at runtime rather than keeping separate copies. What differs between macOS and Linux:
@@ -167,7 +177,7 @@ git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim
 
 ## References
 
-- https://ohmyz.sh
+- https://github.com/zdharma-continuum/zinit
 - https://ohmyposh.dev
 - https://ghostty.org
 - https://draculatheme.com

@@ -76,11 +76,14 @@ link() {
   printf '  + link  %s -> %s\n' "$dest" "$src"
 }
 
-install_oh_my_zsh() {
-  if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo "Installing oh-my-zsh..."
-    RUNZSH=no CHSH=no sh -c \
-      "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/tools/install.sh)"
+# zinit — the zsh plugin manager (.zshrc also self-installs it on first run,
+# so this is just to front-load the clone during setup).
+install_zinit() {
+  local zinit_home="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+  if [ ! -d "$zinit_home" ]; then
+    echo "Installing zinit..."
+    mkdir -p "$(dirname "$zinit_home")"
+    git clone --depth=1 https://github.com/zdharma-continuum/zinit.git "$zinit_home"
   fi
 }
 
@@ -92,7 +95,7 @@ if [ "$DO_BREW" = "1" ]; then
   fi
   echo "Installing CLI tools via Homebrew..."
   brew install "${BREW_PACKAGES[@]}"
-  install_oh_my_zsh
+  install_zinit
   echo
 fi
 
@@ -151,7 +154,7 @@ if [ "$DO_APT" = "1" ]; then
     curl https://get.volta.sh | bash
   fi
 
-  install_oh_my_zsh
+  install_zinit
   echo
 fi
 
