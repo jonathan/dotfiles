@@ -1,8 +1,8 @@
 # dotfiles
 
-Personal macOS dotfiles for a terminal-centric dev environment: **zsh** (oh-my-zsh + oh-my-posh), **tmux**, **vim**, plus **bat**, **fzf**, and **iTerm2** with the Dracula theme throughout.
+Personal macOS dotfiles for a terminal-centric dev environment: **zsh** (oh-my-zsh + oh-my-posh), **tmux**, **Neovim**, plus **bat**, **fzf**, and **iTerm2** with the Dracula theme throughout.
 
-Neovim is intentionally **not** in this repo — see [Neovim](#neovim) below.
+The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim) below.
 
 ## What's in here
 
@@ -12,7 +12,6 @@ Neovim is intentionally **not** in this repo — see [Neovim](#neovim) below.
 | `.zprofile` | `~/.zprofile` | Login-shell setup — Homebrew `shellenv`, .NET tools on PATH |
 | `.jonathanhicks.omp.json` | `~/.jonathanhicks.omp.json` | oh-my-posh prompt theme (Dracula colors) |
 | `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode, dracula/tmux, vim-tmux navigation |
-| `.vimrc` | `~/.vimrc` | Vim config — vim-plug, ALE, OmniSharp (C#), vim-go, lightline, Dracula |
 | `config/bat/config` | `~/.config/bat/config` | bat pager defaults (Dracula theme) |
 | `config/git/ignore` | `~/.config/git/ignore` | Global gitignore |
 | `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset |
@@ -32,8 +31,8 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/t
 # CLI tools used by the configs
 brew install fzf bat git tmux nvm volta
 
-# Editors
-brew install vim
+# Editor
+brew install neovim
 ```
 
 The dracula oh-my-zsh theme (`ZSH_THEME="dracula"`) is a custom theme — drop it in `~/.oh-my-zsh/custom/themes/`. The prompt is actually rendered by **oh-my-posh** (see `.zshrc`), so the oh-my-zsh theme is largely cosmetic fallback.
@@ -50,7 +49,6 @@ ln -sf "$PWD/.zshrc"                 ~/.zshrc
 ln -sf "$PWD/.zprofile"              ~/.zprofile
 ln -sf "$PWD/.jonathanhicks.omp.json" ~/.jonathanhicks.omp.json
 ln -sf "$PWD/.tmux.conf"             ~/.tmux.conf
-ln -sf "$PWD/.vimrc"                 ~/.vimrc
 
 # ~/.config files
 mkdir -p ~/.config/bat ~/.config/git
@@ -58,9 +56,9 @@ ln -sf "$PWD/config/bat/config" ~/.config/bat/config
 ln -sf "$PWD/config/git/ignore" ~/.config/git/ignore
 ```
 
-Then install the per-tool plugin managers:
+Then set up the editor and tmux plugins:
 
-- **vim** — [vim-plug](https://github.com/junegunn/vim-plug) self-installs on first launch (the bootstrap block at the top of `.vimrc` curls it). Then run `:PlugInstall`.
+- **Neovim** — clone the separate config repo (see [Neovim](#neovim) below). Plugins are managed there.
 - **tmux** — [tpm](https://github.com/tmux-plugins/tpm):
   ```sh
   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
@@ -82,22 +80,20 @@ Create them locally as needed.
 
 ## Neovim
 
-The Neovim config is maintained as its **own git repository** at `~/.config/nvim` (a [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) fork, Lua-based). It is intentionally not vendored here to keep a single source of truth. Clone it separately:
+Neovim is my primary editor (`EDITOR=nvim`, with `vi` aliased to `nvim` in `.zshrc`). Its config is maintained as its **own git repository** at `~/.config/nvim` (a [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) fork, Lua-based, with its own plugin management). It is intentionally not vendored here to keep a single source of truth. Clone it separately:
 
 ```sh
 git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim
 ```
-
-The legacy `init.vim` that used to live in this repo has been removed — `.vimrc` remains for plain Vim.
 
 ## References
 
 - https://ohmyz.sh
 - https://ohmyposh.dev
 - https://draculatheme.com
-- https://github.com/junegunn/vim-plug
+- https://neovim.io
+- https://github.com/nvim-lua/kickstart.nvim
 - https://github.com/tmux-plugins/tpm
 - https://github.com/junegunn/fzf
 - https://github.com/sharkdp/bat
 - https://www.tmuxcheatsheet.com
-- http://vimsheet.com
