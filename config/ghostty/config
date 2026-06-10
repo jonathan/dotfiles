@@ -1,0 +1,27 @@
+# Ghostty configuration — cross-platform (macOS + Linux).
+# Installs to ~/.config/ghostty/config.
+# Docs: https://ghostty.org/docs/config
+
+# Dracula is a built-in Ghostty theme — matches tmux/bat/Neovim.
+theme = Dracula
+
+# Font — needs a Nerd Font for the eza/oh-my-posh glyphs to render.
+# Install one (e.g. `brew install --cask font-jetbrains-mono-nerd-font` on mac,
+# or grab from https://www.nerdfonts.com on Linux) and set it here.
+font-family = "JetBrainsMono Nerd Font"
+font-size = 13
+
+# Look & feel
+background-opacity = 0.95
+window-padding-x = 6
+window-padding-y = 6
+cursor-style = block
+mouse-hide-while-typing = true
+copy-on-select = true
+
+# Scrollback
+scrollback-limit = 10000000
+
+# macOS-only options are ignored on Linux and vice-versa, so it's safe to
+# keep both here.
+macos-option-as-alt = true

@@ -1,21 +1,22 @@
 # dotfiles
 
-Personal macOS dotfiles for a terminal-centric dev environment: **zsh** (oh-my-zsh + oh-my-posh), **tmux**, **Neovim**, plus a set of modern, fast CLI tools (**eza**, **zoxide**, **fd**, **ripgrep**, **bat**, **fzf**) and **iTerm2**, with the Dracula theme throughout.
+Personal cross-platform dotfiles (**macOS** and **Ubuntu/Debian Linux**) for a terminal-centric dev environment: **zsh** (oh-my-zsh + oh-my-posh), **tmux**, **Neovim**, plus a set of modern, fast CLI tools (**eza**, **zoxide**, **fd**, **ripgrep**, **bat**, **fzf**) and **Ghostty** as the terminal, with the Dracula theme throughout.
 
-The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim) below.
+The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the same `.zshrc`/`.tmux.conf` work on both platforms — see [Platform notes](#platform-notes). The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim).
 
 ## What's in here
 
 | File | Installs to | Purpose |
 |------|-------------|---------|
 | `.zshrc` | `~/.zshrc` | Main zsh config — oh-my-zsh, plugins, aliases, PATH, fzf/nvm/volta |
-| `.zprofile` | `~/.zprofile` | Login-shell setup — Homebrew `shellenv`, .NET tools on PATH |
+| `.zprofile` | `~/.zprofile` | Login-shell setup — Homebrew/Linuxbrew `shellenv`, .NET tools on PATH |
 | `.jonathanhicks.omp.json` | `~/.jonathanhicks.omp.json` | oh-my-posh prompt theme (Dracula colors) |
-| `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode, dracula/tmux, vim-tmux navigation |
+| `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode (OS-aware clipboard), dracula/tmux, vim-tmux navigation |
 | `config/bat/config` | `~/.config/bat/config` | bat pager defaults (Dracula theme) |
 | `config/git/ignore` | `~/.config/git/ignore` | Global gitignore |
-| `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset |
-| `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences |
+| `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal config (Dracula) — macOS + Linux |
+| `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset (legacy macOS terminal) |
+| `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences (legacy macOS terminal) |
 | `setup.sh` | — | Symlinks the above into `$HOME` (see [Installation](#installation)) |
 
 Files under `config/` mirror their destination under `~/.config/` (e.g. `config/bat/config` → `~/.config/bat/config`).
@@ -37,7 +38,9 @@ Files under `config/` mirror their destination under `~/.config/` (e.g. `config/
 
 ## Prerequisites
 
-Install via [Homebrew](https://brew.sh) (Apple Silicon — installs to `/opt/homebrew`). The easiest path is `./setup.sh --brew` (see [Installation](#installation)), which installs everything below; or do it manually:
+The easiest path is `setup.sh` with the right flag for your platform (`--brew` on macOS, `--apt` on Ubuntu/Debian) — see [Installation](#installation). To install manually:
+
+### macOS — [Homebrew](https://brew.sh) (Apple Silicon, `/opt/homebrew`)
 
 ```sh
 # Shell + prompt + editor + tmux
@@ -47,7 +50,32 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/t
 
 # Modern CLI tools used by the configs
 brew install fzf bat eza zoxide fd ripgrep volta
+
+# Terminal
+brew install --cask ghostty
 ```
+
+### Ubuntu/Debian — apt + a few curl installers
+
+Some packages have name/binary quirks (handled automatically by `.zshrc`, noted here for awareness):
+
+```sh
+# In apt — note: fd is `fd-find` (binary fdfind), bat installs binary batcat
+sudo apt update
+sudo apt install -y zsh git tmux curl fzf bat fd-find ripgrep \
+                    wl-clipboard xclip acpi build-essential
+
+# Not in base apt:
+#   - eza        -> community apt repo (see setup.sh --apt) or `cargo install eza`
+#   - neovim     -> apt's is old; use ppa:neovim-ppa/unstable
+#   - oh-my-posh -> curl -s https://ohmyposh.dev/install.sh | bash -s
+#   - volta      -> curl https://get.volta.sh | bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyz.sh/ohmyz.sh/master/tools/install.sh)"  # oh-my-zsh
+
+# Terminal — Ghostty (see https://ghostty.org/docs/install/binary for the apt/deb)
+```
+
+`.zshrc` aliases `fd`→`fdfind` and `bat`→`batcat` on Debian/Ubuntu automatically, so commands work the same on both platforms.
 
 The dracula oh-my-zsh theme (`ZSH_THEME="dracula"`) is a custom theme — drop it in `~/.oh-my-zsh/custom/themes/`. The prompt is actually rendered by **oh-my-posh** (see `.zshrc`), so the oh-my-zsh theme is largely cosmetic fallback.
 
@@ -58,16 +86,18 @@ This repo expects its files to live at the paths in the table above. The include
 ```sh
 git clone <this-repo> "$HOME/projects/dotfiles"
 cd "$HOME/projects/dotfiles"
-./setup.sh                  # symlink dotfiles only
-./setup.sh --brew --tpm     # also brew-install the CLI tools + clone tpm
+./setup.sh                  # symlink dotfiles only (any OS)
+./setup.sh --brew --tpm     # macOS: brew-install the CLI tools + clone tpm
+./setup.sh --apt --tpm      # Ubuntu/Debian: apt+curl install the tools + clone tpm
 ```
 
 Flags (combinable):
 
-- `--brew` — `brew install` the tools from [Prerequisites](#prerequisites) (and oh-my-zsh if missing)
+- `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus oh-my-zsh
+- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus oh-my-zsh. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
 - `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
 
-The script resolves the repo from its own location, so it works wherever you clone it.
+The script detects the OS and resolves the repo from its own location, so it works wherever you clone it.
 
 <details>
 <summary>Manual equivalent</summary>
@@ -80,9 +110,10 @@ ln -sf "$HOME/projects/dotfiles/.jonathanhicks.omp.json" "$HOME/.jonathanhicks.o
 ln -sf "$HOME/projects/dotfiles/.tmux.conf"              "$HOME/.tmux.conf"
 
 # ~/.config files
-mkdir -p "$HOME/.config/bat" "$HOME/.config/git"
-ln -sf "$HOME/projects/dotfiles/config/bat/config" "$HOME/.config/bat/config"
-ln -sf "$HOME/projects/dotfiles/config/git/ignore" "$HOME/.config/git/ignore"
+mkdir -p "$HOME/.config/bat" "$HOME/.config/git" "$HOME/.config/ghostty"
+ln -sf "$HOME/projects/dotfiles/config/bat/config"     "$HOME/.config/bat/config"
+ln -sf "$HOME/projects/dotfiles/config/git/ignore"     "$HOME/.config/git/ignore"
+ln -sf "$HOME/projects/dotfiles/config/ghostty/config" "$HOME/.config/ghostty/config"
 ```
 
 </details>
@@ -96,9 +127,10 @@ Then set up the editor and tmux plugins:
   ```
   Then inside tmux press prefix (`C-a`) + `I` to install plugins.
 
-Finally:
+Finally, the terminal:
 
-- **iTerm2** — import `iterm/Dracula.itermcolors` (Settings → Profiles → Colors → Import), and point iTerm2 at `iterm/com.googlecode.iterm2.plist` (Settings → General → Preferences → load from a custom folder).
+- **Ghostty** (both platforms) — reads `~/.config/ghostty/config`, which `setup.sh` links. It selects the built-in **Dracula** theme. Install a [Nerd Font](https://www.nerdfonts.com) and set `font-family` in that file so eza/oh-my-posh glyphs render.
+- **iTerm2** (legacy, macOS only) — if you still use it, import `iterm/Dracula.itermcolors` (Settings → Profiles → Colors → Import) and load `iterm/com.googlecode.iterm2.plist` (Settings → General → Preferences → custom folder).
 
 ### Secrets / machine-local config
 
@@ -108,6 +140,22 @@ Finally:
 - `~/.bootstrap_rc` — machine bootstrap hook
 
 Create them locally as needed.
+
+## Platform notes
+
+The shared config files branch on the OS at runtime rather than keeping separate copies. What differs between macOS and Linux:
+
+| Concern | macOS | Ubuntu/Debian Linux |
+|---------|-------|---------------------|
+| Homebrew (`.zprofile`) | `/opt/homebrew` | Linuxbrew at `/home/linuxbrew/.linuxbrew`, or skip (apt) — guarded, no-op if absent |
+| `ls` fallback (no eza) | BSD `ls -hG` | GNU `ls -h --color=auto` (auto-detected) |
+| `fd` / `bat` binaries | `fd` / `bat` | `fdfind` / `batcat` — `.zshrc` aliases them back |
+| tmux clipboard | `pbcopy` | `wl-copy` (Wayland) or `xclip` (X11), auto-detected |
+| Docker socket | `~/.docker/run/docker.sock` (Docker Desktop) | default `/var/run/docker.sock` — `DOCKER_HOST` left unset |
+| `history-substring-search` source | `/opt/homebrew/share/...` | `/usr/share/...` — probed across known paths |
+| Terminal | Ghostty (or legacy iTerm2) | Ghostty |
+
+Things to install on Linux that macOS doesn't need: `wl-clipboard` and/or `xclip` (tmux copy), and `acpi` (the tmux status bar's battery readout — already referenced in `status-right`).
 
 ## Neovim
 
@@ -121,10 +169,12 @@ git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim
 
 - https://ohmyz.sh
 - https://ohmyposh.dev
+- https://ghostty.org
 - https://draculatheme.com
 - https://neovim.io
 - https://github.com/nvim-lua/kickstart.nvim
 - https://github.com/tmux-plugins/tpm
 - https://github.com/junegunn/fzf
 - https://github.com/sharkdp/bat
+- https://www.nerdfonts.com
 - https://www.tmuxcheatsheet.com

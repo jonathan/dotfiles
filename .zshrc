@@ -1,11 +1,11 @@
 if [ -e ~/.bootstrap_rc ]; then
-  source /Users/jonathan.hicks/.bootstrap_rc
+  source ~/.bootstrap_rc
 fi
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/jonathan.hicks/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -75,6 +75,13 @@ zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(git git-prompt zsh-autosuggestions zcolors colorize docker kubectl)
+
+# Speed up completion init: skip the insecure-directory audit (compaudit) and
+# reuse the cached .zcompdump instead of rebuilding it every shell. oh-my-zsh
+# honors this by switching to `compinit -C`. This was the single biggest
+# startup cost (see `zmodload zsh/zprof`). If completions ever seem stale,
+# rebuild once: rm -f ~/.zcompdump*; exec zsh
+export ZSH_DISABLE_COMPFIX="true"
 
 source $ZSH/oh-my-zsh.sh
 
@@ -147,7 +154,14 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)
 # zsh-history-substring-search
 #
 
-source /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+# Source from wherever the package manager put it (Homebrew on mac, apt on Linux).
+for _hss in \
+  /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh \
+  /usr/local/share/zsh-history-substring-search/zsh-history-substring-search.zsh \
+  /usr/share/zsh-history-substring-search/zsh-history-substring-search.zsh; do
+  [ -r "$_hss" ] && source "$_hss" && break
+done
+unset _hss
 
 # Bind ^[[A/^[[B manually so up/down works both before and after zle-line-init
 bindkey '^[[A' history-substring-search-up
@@ -181,12 +195,19 @@ HISTSIZE=10000
 SAVEHIST=10000
 bindkey -v
 # End of lines configured by zsh-newuser-install
-# The following lines were added by compinstall
-#zstyle :compinstall filename "/Users/jonathan.hicks/.zshrc"
+# NOTE: do NOT call compinit here — oh-my-zsh already runs it once (above, in
+# `source $ZSH/oh-my-zsh.sh`). A second compinit roughly doubled startup time
+# (compinit/compdump were the top cost in `zmodload zsh/zprof`). See the
+# ZSH_DISABLE_COMPFIX / compinit-caching note near the top of this file.
 
-autoload -Uz compinit
-compinit
-# End of lines added by compinstall
+# Debian/Ubuntu rename these binaries to avoid clashes. Alias them back to the
+# names the rest of this config (and muscle memory) expects.
+if ! command -v fd >/dev/null && command -v fdfind >/dev/null; then
+  alias fd='fdfind'
+fi
+if ! command -v bat >/dev/null && command -v batcat >/dev/null; then
+  alias bat='batcat'
+fi
 
 # eza (modern ls) — falls back to coreutils ls if eza isn't installed
 if command -v eza >/dev/null; then
@@ -195,7 +216,12 @@ if command -v eza >/dev/null; then
   alias la="eza -a --group-directories-first --icons --git"
   alias lt="eza --tree --level=2 --icons"
 else
-  alias ls="ls -hG"
+  # Color flag differs: BSD/macOS uses -G, GNU/Linux uses --color=auto
+  if ls --color=auto >/dev/null 2>&1; then
+    alias ls="ls -h --color=auto"        # GNU coreutils (Linux)
+  else
+    alias ls="ls -hG"                    # BSD ls (macOS)
+  fi
   alias ll="ls -lFh"
   alias la="ls -ah"
 fi
@@ -227,17 +253,30 @@ alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
 # export LLVM_HOME="/usr/local/opt/llvm"
 # export ERLANG_MAN="/usr/local/opt/erlang/lib/erlang/man"
 # export TERRAFORM_HOME="/usr/local/opt/terraform@0.12"
-export DOCKER_HOST="unix:///Users/jonathan.hicks/.docker/run/docker.sock"
+
+# macOS Docker Desktop puts its socket under ~/.docker. On Linux the default
+# /var/run/docker.sock is used automatically, so DOCKER_HOST is left unset.
+if [[ "$OSTYPE" == darwin* ]] && [ -S "$HOME/.docker/run/docker.sock" ]; then
+  export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"
+fi
 
 # Store sensative env vars here
 if [ -e ~/.env_vars.zsh ]; then
   source ~/.env_vars.zsh
 fi
 
-export GUILE_TLS_CERTIFICATE_DIRECTORY="/usr/local/etc/gnutls/"
+# GnuTLS cert dir — path differs by OS; only export if it exists.
+for _gnutls in /opt/homebrew/etc/gnutls /usr/local/etc/gnutls /etc/gnutls; do
+  [ -d "$_gnutls" ] && export GUILE_TLS_CERTIFICATE_DIRECTORY="$_gnutls/" && break
+done
+unset _gnutls
 
-export PATH="/usr/local/bin:/usr/local/sbin:$HOME/bin:/Applications/Docker.app/Contents/Resources/bin/:$HOME/.local/bin:$HOME/.cargo/bin/:$PATH"
-#export PATH="/usr/local/bin:$HOME/bin:$LLVM_HOME/bin:$HOME/.rbenv/bin:$PATH"
+# Cross-platform PATH: personal bins first, then language toolchains.
+export PATH="$HOME/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+# macOS-only: Docker Desktop CLI tools
+if [[ "$OSTYPE" == darwin* ]] && [ -d "/Applications/Docker.app/Contents/Resources/bin" ]; then
+  export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+fi
 # export MANPATH="$ERLANG_MAN:$MANPATH"
 
 # export RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@1.1)"
@@ -247,12 +286,20 @@ if command -v fzf >/dev/null; then
   source <(fzf --zsh)
 fi
 
-# Use fd for fzf's file/dir search when available (respects .gitignore, faster)
+# Use fd for fzf's file/dir search when available (respects .gitignore, faster).
+# Resolve the real binary name (fd on mac/Homebrew, fdfind on Debian/Ubuntu).
+_fd_bin=""
 if command -v fd >/dev/null; then
-  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+  _fd_bin=fd
+elif command -v fdfind >/dev/null; then
+  _fd_bin=fdfind
 fi
+if [ -n "$_fd_bin" ]; then
+  export FZF_DEFAULT_COMMAND="$_fd_bin --type f --hidden --follow --exclude .git"
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND="$_fd_bin --type d --hidden --follow --exclude .git"
+fi
+unset _fd_bin
 
 export FZF_DEFAULT_OPTS="--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9 --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9 --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6 --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4"
 
@@ -261,7 +308,9 @@ if command -v zoxide >/dev/null; then
   eval "$(zoxide init zsh)"
 fi
 
-if command -v kubectl >/dev/null; then source <(kubectl completion zsh); fi
+# kubectl completion is provided by the `kubectl` oh-my-zsh plugin (loaded
+# above). The old inline `source <(kubectl completion zsh)` re-ran the kubectl
+# binary and re-registered ~1600 completions on every shell start — removed.
 
 # Node version management is handled by Volta (automatic per-project switching,
 # no shell hook). The previous nvm setup + load-nvmrc chpwd hook was removed —
