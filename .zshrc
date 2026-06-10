@@ -188,9 +188,17 @@ autoload -Uz compinit
 compinit
 # End of lines added by compinstall
 
-alias ls="ls -hG"
-alias ll="ls -lFh"
-alias la="ls -ah"
+# eza (modern ls) — falls back to coreutils ls if eza isn't installed
+if command -v eza >/dev/null; then
+  alias ls="eza --group-directories-first --icons --git"
+  alias ll="eza -lFh --group-directories-first --icons --git"
+  alias la="eza -a --group-directories-first --icons --git"
+  alias lt="eza --tree --level=2 --icons"
+else
+  alias ls="ls -hG"
+  alias ll="ls -lFh"
+  alias la="ls -ah"
+fi
 alias gts="git tag --sort version:refname"
 alias gbc="git checkout -b"
 alias kconnect="kinit jonathan.hicks@QA.LOCAL"
@@ -210,10 +218,11 @@ alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
 #alias restart_dock=osascript -e 'quit application "Dock"'
 
 # Compiler flags
-export LDFLAGS="-L/usr/local/opt/llvm/lib -L/usr/local/opt/libffi/lib -L/usr/local/opt/openssl/lib"
-export CPPFLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/openssl/include"
-
-export PKG_CONFIG_PATH="/usr/local/opt/libffi/lib/pkgconfig"
+# NOTE: legacy Intel-Homebrew paths (/usr/local). On Apple Silicon these resolve
+# to nothing; uncomment and repoint to /opt/homebrew if you build against them.
+# export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/libffi/lib -L/opt/homebrew/opt/openssl/lib"
+# export CPPFLAGS="-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/openssl/include"
+# export PKG_CONFIG_PATH="/opt/homebrew/opt/libffi/lib/pkgconfig"
 
 # export LLVM_HOME="/usr/local/opt/llvm"
 # export ERLANG_MAN="/usr/local/opt/erlang/lib/erlang/man"
@@ -233,61 +242,39 @@ export PATH="/usr/local/bin:/usr/local/sbin:$HOME/bin:/Applications/Docker.app/C
 
 # export RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@1.1)"
 
-# fzf via Homebrew
-if [ -e /usr/local/opt/fzf/shell/completion.zsh ]; then
-  source /usr/local/opt/fzf/shell/key-bindings.zsh
-  source /usr/local/opt/fzf/shell/completion.zsh
+# fzf — key bindings + completion (fzf >= 0.48 ships `fzf --zsh`)
+if command -v fzf >/dev/null; then
+  source <(fzf --zsh)
 fi
-source <(fzf --zsh)
 
-# fzf via local installation
-#if [ -e ~/.fzf ]; then
-#  _append_to_path ~/.fzf/bin
-#  source ~/.fzf/shell/key-bindings.zsh
-#  source ~/.fzf/shell/completion.zsh
-#fi
+# Use fd for fzf's file/dir search when available (respects .gitignore, faster)
+if command -v fd >/dev/null; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+fi
 
 export FZF_DEFAULT_OPTS="--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9 --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9 --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6 --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4"
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-eval "$(fzf --zsh)"
+# zoxide — smarter cd (z <partial-dir-name>)
+if command -v zoxide >/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
 
-if [ /usr/local/bin/kubectl ]; then source <(kubectl completion zsh); fi
+if command -v kubectl >/dev/null; then source <(kubectl completion zsh); fi
 
-export NODE_EXTRA_CA_CERTS="$HOME/Documents/npm-sfdc-certs.pem"
+# Node version management is handled by Volta (automatic per-project switching,
+# no shell hook). The previous nvm setup + load-nvmrc chpwd hook was removed —
+# it was slow and redundant with Volta.
 export VOLTA_HOME="$HOME/.volta"
 export PATH="$VOLTA_HOME/bin:$PATH"
 # export SSH_AUTH_SOCK="~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
-#
-export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-# place this after nvm initialization!
-autoload -U add-zsh-hook
-load-nvmrc() {
-  local nvmrc_path="$(nvm_find_nvmrc)"
-
-  if [ -n "$nvmrc_path" ]; then
-    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
-
-    if [ "$nvmrc_node_version" = "N/A" ]; then
-      nvm install
-    elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
-      nvm use
-    fi
-  elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
-    echo "Reverting to nvm default version"
-    nvm use default
-  fi
-}
-add-zsh-hook chpwd load-nvmrc
-load-nvmrc
 
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   eval "$(oh-my-posh init zsh --config ~/.jonathanhicks.omp.json)"
 fi
 
-export NODE_EXTRA_CA_CERTS="$HOME/.config/nexus-npm/npm-sfdc-certs.pem"
+# NODE_EXTRA_CA_CERTS — devbar-managed bundle (this is the effective value)
 # devbar-managed-start
 export NODE_EXTRA_CA_CERTS="$HOME/.devbar/certs/corporate-ca-bundle.pem"
 # devbar-managed-end
