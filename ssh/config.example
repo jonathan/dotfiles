@@ -1,0 +1,51 @@
+# SSH config — GitHub multi-account snippet (TEMPLATE, not symlinked)
+#
+# This is NOT installed by setup.sh. Copy the relevant block into your real
+# ~/.ssh/config by hand. It is kept here only to preserve the multiplexing fix
+# documented below — the real config also contains machine/work-specific hosts
+# that should never live in a dotfiles repo (and never commit a private key).
+#
+# ---------------------------------------------------------------------------
+# Two GitHub accounts on one machine (e.g. work on github.com + a personal
+# account via a host alias). Clone/remote personal repos with:
+#     git@github.com-personal:<user>/<repo>.git
+# and work repos normally with:
+#     git@github.com:<user>/<repo>.git
+# Each GitHub SSH key belongs to exactly one account, so the alias must offer
+# the *right* key — and must not silently reuse the other account's connection.
+
+Host github.com-personal
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519_personal
+  # Offer ONLY the key above — without this, ssh-agent may hand GitHub a
+  # different loaded key (e.g. the work key) and authenticate as that account.
+  IdentitiesOnly yes
+  # Dedicated control socket. THE GOTCHA: this alias and plain `github.com`
+  # both resolve to HostName github.com. If your `Host *` block enables
+  # connection multiplexing with a hostname-keyed ControlPath
+  # (e.g. ControlPath ~/.ssh/cm_socket/%r@%h:%p), the two aliases SHARE one
+  # socket keyed on `github.com` — whichever connects first wins, and the
+  # personal push ends up authenticated as the work account. Keying this
+  # socket on the alias name (%n) keeps the personal connection separate.
+  ControlPath ~/.ssh/cm_socket/%n-%r@%h:%p
+
+# If your global block turns on multiplexing, it looks like this. The personal
+# block above overrides ControlPath for that alias only; everything else still
+# shares the default socket.
+#
+# Host *
+#   AddKeysToAgent yes
+#   UseKeychain yes
+#   ControlMaster auto
+#   ControlPath ~/.ssh/cm_socket/%r@%h:%p
+#   ControlPersist yes
+#
+# One-time setup: the socket directory must exist.
+#   mkdir -p ~/.ssh/cm_socket
+#
+# Verify each alias authenticates as the intended account:
+#   ssh -T git@github.com           # -> "Hi <work-user>!"
+#   ssh -T git@github.com-personal  # -> "Hi <personal-user>!"
+# If a wrong identity is cached, close the stale master socket and retry:
+#   ssh -O exit git@github.com  2>/dev/null; rm -f ~/.ssh/cm_socket/*github.com*

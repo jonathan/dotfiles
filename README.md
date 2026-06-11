@@ -17,6 +17,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal config (Dracula) — macOS + Linux |
 | `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset (legacy macOS terminal) |
 | `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences (legacy macOS terminal) |
+| `ssh/config.example` | — | Template (not symlinked) — two-GitHub-account SSH setup; see [SSH config](#ssh-config) |
 | `setup.sh` | — | Symlinks the above into `$HOME` (see [Installation](#installation)) |
 
 Files under `config/` mirror their destination under `~/.config/` (e.g. `config/bat/config` → `~/.config/bat/config`).
@@ -139,6 +140,10 @@ Finally, the terminal:
 - `~/.bootstrap_rc` — machine bootstrap hook
 
 Create them locally as needed.
+
+### SSH config
+
+`~/.ssh/config` is **not** symlinked — it's machine/work-specific and lives next to a private key, so it stays out of the repo. But [`ssh/config.example`](ssh/config.example) preserves one portable, easy-to-forget bit: the host-alias setup for using **two GitHub accounts** (work + personal) on one machine, including the connection-multiplexing gotcha where both aliases share a socket and the personal push silently authenticates as the work account. Copy that block into your real `~/.ssh/config` by hand on a new machine; never commit the key it references.
 
 ## Shell startup
 
