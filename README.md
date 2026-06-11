@@ -15,6 +15,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `config/bat/config` | `~/.config/bat/config` | bat pager defaults (Dracula theme) |
 | `config/git/ignore` | `~/.config/git/ignore` | Global gitignore |
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal config (Dracula) — macOS + Linux |
+| `config/op/artifactory.env` | `~/.config/op/artifactory.env` | **Work-specific** `op run` template — `op://` refs (no secrets) for `artenv`/Salesforce Artifactory; see [op](#1password-cli-op-multi-account) |
 | `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset (legacy macOS terminal) |
 | `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences (legacy macOS terminal) |
 | `ssh/config.example` | — | Template (not symlinked) — two-GitHub-account SSH setup; see [SSH config](#ssh-config) |
@@ -96,6 +97,7 @@ Flags (combinable):
 - `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus zinit
 - `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
 - `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
+- `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
 
 The script detects the OS and resolves the repo from its own location, so it works wherever you clone it.
 
@@ -173,6 +175,19 @@ On a work machine, `gh` is logged into both the work and personal accounts (`gh 
 - **Default account** — `OP_ACCOUNT` defaults bare `op` commands to the **personal** account; use `opw` (or `--account`) for work.
 - **SSH agent** — `SSH_AUTH_SOCK` points at the 1Password SSH agent socket, chosen OS-aware (macOS `~/Library/Group Containers/...` vs Linux `~/.1password/agent.sock`) and only if the socket exists (agent enabled in the app).
 - **Completion** — `op completion zsh` is loaded deferred via zinit (forking `op` costs ~60ms, too much for eager startup).
+- **Secret injection (`op run`)** — instead of exporting plaintext secrets globally, secrets are pulled from 1Password only for the command that needs them. `openv <work|personal> <env-file> -- <cmd>` is a **generic** wrapper around `op run`: give it any env-file of `op://` references and it resolves them at call time for that one command. This part is reusable for any secret cluster, work or personal.
+
+> **`artenv` + `config/op/artifactory.env` are work-specific — not a general example.**
+> They target *my* employer's Salesforce **Artifactory/Nexus** registries (the
+> `ARTIFACTORY_*` / `NEXUS_*` vars my work npm/build tooling expects, in my work
+> 1Password vault). On a personal machine they have nothing to point at. If you're
+> adapting these dotfiles, use the generic `openv` instead and write your own
+> env-file template for whatever secrets *you* have — don't expect `artenv` to mean
+> anything off my work setup. The tracked [`config/op/artifactory.env`](config/op/artifactory.env)
+> holds **only `op://` references, no secrets**, so it's safe to track, but its
+> vault/item/field names are mine. Example use on my machine: `artenv -- npm install`.
+
+> **Why this matters:** the old approach kept ~25 secrets as plaintext `export`s in `~/.env_vars.zsh`, loaded into *every* process's environment. Moving the high-value ones into 1Password and injecting them per-command via `op run` removes them from disk and from the global environment. Non-secrets (usernames, emails, URLs) can stay as plain env vars. `~/.env_vars.zsh` itself stays untracked (see [Secrets](#secrets--machine-local-config)).
 
 `op` stores **no secrets on disk** — vault data is encrypted server-side and unlocked via the desktop app/biometrics — so this shell glue is safe to track. The `~/.config/op/config` file (account metadata, device id) is machine-specific and is **not** tracked, same as `~/.ssh/config`.
 

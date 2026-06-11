@@ -9,11 +9,13 @@
 # Cross-platform: works on macOS and Ubuntu/Debian Linux.
 #
 # Usage:
-#   ./setup.sh           # symlink dotfiles only
+#   ./setup.sh           # symlink the portable dotfiles only
 #   ./setup.sh --brew    # also install CLI tools via Homebrew (macOS or Linuxbrew)
 #   ./setup.sh --apt     # also install CLI tools via apt + curl (Ubuntu/Debian)
 #   ./setup.sh --tpm     # also clone tpm (tmux plugin manager) if missing
-# Flags can be combined, e.g.: ./setup.sh --apt --tpm
+#   ./setup.sh --work    # also link work-only configs (Salesforce Artifactory/Nexus
+#                        #   op-run template) — pointless on a personal machine
+# Flags can be combined, e.g.: ./setup.sh --brew --tpm --work
 
 set -euo pipefail
 
@@ -39,11 +41,13 @@ BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
 DO_BREW=0
 DO_APT=0
 DO_TPM=0
+DO_WORK=0
 for arg in "$@"; do
   case "$arg" in
     --brew) DO_BREW=1 ;;
     --apt)  DO_APT=1 ;;
     --tpm)  DO_TPM=1 ;;
+    --work) DO_WORK=1 ;;
     *) printf 'unknown flag: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -167,9 +171,18 @@ link ".jonathanhicks.omp.json" "$HOME/.jonathanhicks.omp.json"
 link ".tmux.conf"              "$HOME/.tmux.conf"
 
 # ~/.config files (config/<x> mirrors ~/.config/<x>)
-link "config/bat/config"     "$HOME/.config/bat/config"
-link "config/git/ignore"     "$HOME/.config/git/ignore"
-link "config/ghostty/config" "$HOME/.config/ghostty/config"
+link "config/bat/config"        "$HOME/.config/bat/config"
+link "config/git/ignore"        "$HOME/.config/git/ignore"
+link "config/ghostty/config"    "$HOME/.config/ghostty/config"
+
+# WORK-MACHINE ONLY: config/op/artifactory.env is an `op run` template of op://
+# references for my employer's Artifactory/Nexus registries (used by the `artenv`
+# helper in .zshrc). It's useless on a personal machine — nothing to point at —
+# so it's only linked when running with --work. The generic `openv` helper in
+# .zshrc works without it; write your own env-file for your own secrets.
+if [ "$DO_WORK" = "1" ]; then
+  link "config/op/artifactory.env" "$HOME/.config/op/artifactory.env"
+fi
 
 # Optional: tmux plugin manager
 if [ "$DO_TPM" = "1" ]; then

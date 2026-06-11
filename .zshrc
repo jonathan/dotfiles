@@ -272,6 +272,25 @@ if command -v op >/dev/null; then
     [ -S "$_op_sock" ] && export SSH_AUTH_SOCK="$_op_sock" && break
   done
   unset _op_sock
+
+  # Run a command with secrets injected from an op env-file template (op://
+  # references resolved at call time, never written to disk or left in the
+  # environment afterward). This replaces exporting plaintext secrets globally.
+  #   openv <account> <env-file> -- <command...>
+  # e.g. openv work ~/.config/op/artifactory.env -- npm install
+  openv() {
+    local which="$1" envfile="${2/#\~/$HOME}"; shift 2
+    local acct; case "$which" in
+      work|w)     acct="$OP_WORK_ACCOUNT" ;;
+      personal|p) acct="$OP_PERSONAL_ACCOUNT" ;;
+      *) print -u2 "openv: first arg must be work|personal"; return 2 ;;
+    esac
+    op run --account "$acct" --env-file="$envfile" "$@"
+  }
+
+  # Convenience: run a command with the Artifactory/Nexus secrets in scope.
+  #   artenv -- npm install     (secrets live only for that command)
+  artenv() { openv work ~/.config/op/artifactory.env "$@"; }
 fi
 
 # Node version management is handled by Volta (automatic per-project switching,
