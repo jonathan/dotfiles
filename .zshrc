@@ -57,6 +57,15 @@ zinit wait lucid for \
   atload'zicompinit; zicdreplay' \
   OMZ::plugins/kubectl/kubectl.plugin.zsh
 
+# 1Password CLI completion — deferred (forking `op completion zsh` costs ~60ms,
+# too much for eager startup). zinit runs the atinit block after the first
+# prompt; compinit has already run eagerly above, so compdef is available.
+if command -v op >/dev/null; then
+  zinit wait lucid as'null' for \
+    atinit'eval "$(op completion zsh)"' \
+    zdharma-continuum/null
+fi
+
 # Fish-like UX, all deferred until after the first prompt is drawn:
 #   autosuggestions, then syntax-highlighting, then history-substring-search.
 # Order matters: syntax-highlighting must load before history-substring-search.
@@ -234,12 +243,43 @@ if command -v gh >/dev/null; then
   }
 fi
 
+# 1Password CLI (op) — multi-account convenience.
+# Like the gh setup, the dual-account part only matters on a machine signed into
+# both a personal and a work 1Password account (i.e. a work machine). On a
+# personal-only machine just the personal account exists; opp still works, opw
+# is harmless (errors only if you actually call it), and everything is guarded
+# by `command -v op` so the whole block no-ops when op isn't installed.
+# `op` stores NO secrets on disk — vault data is encrypted server-side and
+# unlocked via the desktop app/biometrics — so this shell glue is safe to track.
+if command -v op >/dev/null; then
+  # Account shorthands (use the account URLs from `op account list`).
+  export OP_PERSONAL_ACCOUNT="my.1password.com"
+  export OP_WORK_ACCOUNT="salesforce.1password.com"
+
+  # Default bare `op` to the personal account (override per-call with --account,
+  # or use the opw helper below).
+  export OP_ACCOUNT="$OP_PERSONAL_ACCOUNT"
+
+  # Per-account helpers: opp = personal, opw = work.
+  opp() { op --account "$OP_PERSONAL_ACCOUNT" "$@"; }
+  opw() { op --account "$OP_WORK_ACCOUNT" "$@"; }
+
+  # 1Password SSH agent — lets op serve SSH keys. Path differs by OS; only set
+  # SSH_AUTH_SOCK if the socket actually exists (agent enabled in the app).
+  for _op_sock in \
+    "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" \
+    "$HOME/.1password/agent.sock"; do
+    [ -S "$_op_sock" ] && export SSH_AUTH_SOCK="$_op_sock" && break
+  done
+  unset _op_sock
+fi
+
 # Node version management is handled by Volta (automatic per-project switching,
 # no shell hook). The previous nvm setup + load-nvmrc chpwd hook was removed —
 # it was slow and redundant with Volta.
 export VOLTA_HOME="$HOME/.volta"
 export PATH="$VOLTA_HOME/bin:$PATH"
-# export SSH_AUTH_SOCK="~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+# (SSH_AUTH_SOCK for the 1Password agent is set in the `op` block above.)
 
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   eval "$(oh-my-posh init zsh --config ~/.jonathanhicks.omp.json)"

@@ -160,6 +160,22 @@ On a work machine, `gh` is logged into both the work and personal accounts (`gh 
 - **Account names are hardcoded** in `_gh_account_for_repo` (in `.zshrc`) — update them if yours differ (`gh auth status` lists them).
 - Switching changes the **global** active account, so a `gh` call in a personal repo also flips work terminals (and vice-versa). It's self-correcting — the next `gh` in the other repo flips it back — so in practice it's invisible.
 
+### 1Password CLI (`op`) multi-account
+
+> **The dual-account part is work-machine-only, but the block is safe anywhere.**
+> Everything is guarded by `command -v op`, so it no-ops if `op` isn't installed.
+> On a personal-only machine you just have the personal account — `opp` works,
+> `opw` is simply unused.
+
+`.zshrc` adds 1Password CLI conveniences (guarded by `command -v op`):
+
+- **Account helpers** — `opp` targets the personal account, `opw` the work account (each wraps `op --account <url>`). Account URLs are in `OP_PERSONAL_ACCOUNT` / `OP_WORK_ACCOUNT` — **update them if yours differ** (`op account list`).
+- **Default account** — `OP_ACCOUNT` defaults bare `op` commands to the **personal** account; use `opw` (or `--account`) for work.
+- **SSH agent** — `SSH_AUTH_SOCK` points at the 1Password SSH agent socket, chosen OS-aware (macOS `~/Library/Group Containers/...` vs Linux `~/.1password/agent.sock`) and only if the socket exists (agent enabled in the app).
+- **Completion** — `op completion zsh` is loaded deferred via zinit (forking `op` costs ~60ms, too much for eager startup).
+
+`op` stores **no secrets on disk** — vault data is encrypted server-side and unlocked via the desktop app/biometrics — so this shell glue is safe to track. The `~/.config/op/config` file (account metadata, device id) is machine-specific and is **not** tracked, same as `~/.ssh/config`.
+
 ## Shell startup
 
 zsh startup is ~0.15s. The key decision: **zinit loads plugins deferred** (`wait` — after the first prompt paints), so the shell is interactive almost immediately and plugins finish loading in the background.
