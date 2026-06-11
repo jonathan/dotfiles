@@ -187,6 +187,53 @@ if command -v zoxide >/dev/null; then
   eval "$(zoxide init zsh)"
 fi
 
+# gh multi-account: keep the active `gh` account aligned with the repo I'm in.
+# ONLY matters on a machine with two GitHub accounts (i.e. a work machine).
+# On a personal-only machine there's one gh account and the remote never carries
+# the `github.com-personal` alias, so _gh_account_for_repo returns nothing and
+# ghsync is a no-op — safe to leave in regardless.
+#
+# Personal repos use the `github.com-personal` SSH alias in their remote; work
+# repos use plain `github.com`. ghsync picks the matching gh account.
+#
+# The `gh` wrapper below runs ghsync before every gh command so I never forget.
+# It stays fast by reading both the desired and current account from LOCAL
+# sources (git remote + ~/.config/gh/hosts.yml) and only shelling out to the
+# slow `gh auth switch` when they actually differ. `command gh` calls the real
+# binary, preventing the wrapper from recursing into itself.
+if command -v gh >/dev/null; then
+  # Map this repo's origin remote -> the gh account that should be active.
+  # Adjust the account names here if yours differ (see `gh auth status`).
+  _gh_account_for_repo() {
+    local url
+    url=$(command git config --get remote.origin.url 2>/dev/null) || return 1
+    case "$url" in
+      *github.com-personal[:/]*) print -r -- "jonathan" ;;          # personal
+      *github.com[:/]*)          print -r -- "jonathan-hicks_sfemu" ;; # work
+      *) return 1 ;;  # not a github repo (or no remote) — leave gh as-is
+    esac
+  }
+
+  # Currently-active gh account, read straight from gh's config (no network).
+  _gh_active_account() {
+    awk '/^github\.com:/{f=1} f&&/^    user:/{print $2; exit}' \
+      "${HOME}/.config/gh/hosts.yml" 2>/dev/null
+  }
+
+  ghsync() {
+    local want
+    want=$(_gh_account_for_repo) || return 0          # not a gh repo -> no-op
+    [[ "$want" == "$(_gh_active_account)" ]] && return 0  # already correct
+    command gh auth switch --hostname github.com --user "$want" >/dev/null 2>&1
+  }
+
+  # Wrapper: align the account, then run the real gh with all original args.
+  gh() {
+    ghsync
+    command gh "$@"
+  }
+fi
+
 # Node version management is handled by Volta (automatic per-project switching,
 # no shell hook). The previous nvm setup + load-nvmrc chpwd hook was removed —
 # it was slow and redundant with Volta.

@@ -145,6 +145,21 @@ Create them locally as needed.
 
 `~/.ssh/config` is **not** symlinked — it's machine/work-specific and lives next to a private key, so it stays out of the repo. But [`ssh/config.example`](ssh/config.example) preserves one portable, easy-to-forget bit: the host-alias setup for using **two GitHub accounts** (work + personal) on one machine, including the connection-multiplexing gotcha where both aliases share a socket and the personal push silently authenticates as the work account. Copy that block into your real `~/.ssh/config` by hand on a new machine; never commit the key it references.
 
+### GitHub CLI (`gh`) multi-account
+
+> **Only relevant on a machine with two GitHub accounts — i.e. a work machine.**
+> On a personal-only machine `gh` has a single account, so the wrapper below is a
+> harmless no-op (it leaves `gh` untouched when there's nothing to switch). Nothing
+> to configure there.
+
+On a work machine, `gh` is logged into both the work and personal accounts (`gh auth login` once per account). `gh`'s active account is a single **global** setting, so commands run against whichever account was last selected — easy to push a gist or open a PR as the wrong identity.
+
+`.zshrc` defines a `ghsync` function and a thin `gh` **wrapper** (guarded by `command -v gh`) that fixes this: before every `gh` command it aligns the active account to the current repo — the `github.com-personal` remote alias → personal account, plain `github.com` → work account. You never have to remember to switch.
+
+- It's fast: the desired account is read from `git remote`, the current one from `~/.config/gh/hosts.yml` (both local, no network), and it only calls the slow `gh auth switch` when they actually differ. `command gh` runs the real binary, so the wrapper can't recurse.
+- **Account names are hardcoded** in `_gh_account_for_repo` (in `.zshrc`) — update them if yours differ (`gh auth status` lists them).
+- Switching changes the **global** active account, so a `gh` call in a personal repo also flips work terminals (and vice-versa). It's self-correcting — the next `gh` in the other repo flips it back — so in practice it's invisible.
+
 ## Shell startup
 
 zsh startup is ~0.15s. The key decision: **zinit loads plugins deferred** (`wait` — after the first prompt paints), so the shell is interactive almost immediately and plugins finish loading in the background.

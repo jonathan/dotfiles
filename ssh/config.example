@@ -6,6 +6,10 @@
 # that should never live in a dotfiles repo (and never commit a private key).
 #
 # ---------------------------------------------------------------------------
+# ONLY needed on a machine with two GitHub accounts — i.e. a work machine where
+# you also use a personal account. A personal-only machine just uses the default
+# key on github.com and needs none of this.
+#
 # Two GitHub accounts on one machine (e.g. work on github.com + a personal
 # account via a host alias). Clone/remote personal repos with:
 #     git@github.com-personal:<user>/<repo>.git
