@@ -234,6 +234,28 @@ if command -v grpcurl >/dev/null; then
   gcdesc() { grpcurl -plaintext "$1" describe "${2:-}"; }
 fi
 
+# --- Ollama / local DeepSeek -------------------------------------------------
+# Local LLM via Ollama (install + model pull: `./setup.sh --ollama`). The server
+# exposes an OpenAI-compatible API on localhost:11434. The real consumer is
+# Neovim's codecompanion adapter — which lives in the SEPARATE nvim repo, not
+# here — so this block just provides the single source of truth for the model
+# name (OLLAMA_DEFAULT_MODEL, read by that adapter) plus a quick terminal helper.
+# Guarded by `command -v ollama` so it no-ops on machines without it.
+if command -v ollama >/dev/null; then
+  # Keep this in sync with OLLAMA_MODEL in setup.sh and the nvim adapter.
+  export OLLAMA_DEFAULT_MODEL="${OLLAMA_DEFAULT_MODEL:-deepseek-coder-v2:16b}"
+
+  # ai [model] <<<"prompt"  /  ai "prompt..." — one-shot query from the shell.
+  # First arg is treated as a model override only if it contains a ':' (the
+  # Ollama tag separator); otherwise everything is the prompt.
+  ai() {
+    local model="$OLLAMA_DEFAULT_MODEL"
+    case "${1:-}" in *:*) model="$1"; shift ;; esac
+    if [ "$#" -gt 0 ]; then ollama run "$model" "$*"
+    else ollama run "$model"; fi
+  }
+fi
+
 # gh multi-account: keep the active `gh` account aligned with the repo I'm in.
 # ONLY matters on a machine with two GitHub accounts (i.e. a work machine).
 # On a personal-only machine there's one gh account and the remote never carries

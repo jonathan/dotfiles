@@ -15,6 +15,8 @@
 #   ./setup.sh --tpm     # also clone tpm (tmux plugin manager) if missing
 #   ./setup.sh --work    # also link work-only configs (Salesforce Artifactory/Nexus
 #                        #   op-run template) — pointless on a personal machine
+#   ./setup.sh --ollama  # also install Ollama + pull the local DeepSeek model
+#                        #   used by Neovim (codecompanion) — several GB, opt-in
 # Flags can be combined, e.g.: ./setup.sh --brew --tpm --work
 
 set -euo pipefail
@@ -37,17 +39,24 @@ esac
 BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
   fzf bat eza zoxide fd ripgrep volta grpcurl)
 
+# The local DeepSeek model pulled by --ollama. Code-focused MoE; ~16GB+ RAM/VRAM.
+# Keep this name in sync with OLLAMA_DEFAULT_MODEL in .zshrc (and the codecompanion
+# adapter in the separate nvim repo, which reads that env var).
+OLLAMA_MODEL="deepseek-coder-v2:16b"
+
 # Parse flags
 DO_BREW=0
 DO_APT=0
 DO_TPM=0
 DO_WORK=0
+DO_OLLAMA=0
 for arg in "$@"; do
   case "$arg" in
-    --brew) DO_BREW=1 ;;
-    --apt)  DO_APT=1 ;;
-    --tpm)  DO_TPM=1 ;;
-    --work) DO_WORK=1 ;;
+    --brew)   DO_BREW=1 ;;
+    --apt)    DO_APT=1 ;;
+    --tpm)    DO_TPM=1 ;;
+    --work)   DO_WORK=1 ;;
+    --ollama) DO_OLLAMA=1 ;;
     *) printf 'unknown flag: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -171,6 +180,42 @@ if [ "$DO_APT" = "1" ]; then
   echo
 fi
 
+# Optional: install Ollama and pull the local DeepSeek model that Neovim
+# (codecompanion) talks to. Opt-in because the model is several GB. Ollama
+# serves an OpenAI-compatible API on localhost:11434; the nvim adapter and the
+# `ai` helper in .zshrc point at that. The model name lives in $OLLAMA_MODEL
+# above (mirror it in .zshrc's OLLAMA_DEFAULT_MODEL).
+if [ "$DO_OLLAMA" = "1" ]; then
+  if ! command -v ollama >/dev/null; then
+    echo "Installing Ollama..."
+    if [ "$OS" = "macos" ]; then
+      # Prefer brew if present (keeps it with the other tools); else the cask app.
+      if command -v brew >/dev/null; then
+        brew install ollama
+        echo "Note: start the server with 'ollama serve' or 'brew services start ollama'."
+      else
+        echo "brew not found — install the Ollama app from https://ollama.com/download" >&2
+      fi
+    else
+      # Linux: official installer sets up the binary + a systemd service.
+      curl -fsSL https://ollama.com/install.sh | sh
+    fi
+  else
+    echo "Ollama already installed."
+  fi
+
+  # Pull the model. Needs the server running; nudge it on macos/brew where the
+  # daemon isn't automatic. (On Linux the installer's systemd service is up.)
+  if command -v ollama >/dev/null; then
+    echo "Pulling $OLLAMA_MODEL (this is several GB)..."
+    if ! ollama pull "$OLLAMA_MODEL"; then
+      echo "  ! pull failed — is the server running? Try 'ollama serve' then:" >&2
+      echo "      ollama pull $OLLAMA_MODEL" >&2
+    fi
+  fi
+  echo
+fi
+
 echo "Linking dotfiles from $DOTFILES"
 
 # Top-level ~/ dotfiles
@@ -211,6 +256,11 @@ echo "  - Open a new shell (or: source ~/.zshrc) to pick up the zsh config"
 echo "  - Make zsh your login shell if it isn't:  chsh -s \"\$(command -v zsh)\""
 echo "  - Neovim config is a separate repo:"
 echo "      git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim"
+if [ "$DO_OLLAMA" = "1" ]; then
+  echo "  - DeepSeek/Ollama: ensure the server is running ('ollama serve' on macOS;"
+  echo "    systemd service on Linux). The codecompanion adapter lives in the nvim"
+  echo "    repo above and reads \$OLLAMA_DEFAULT_MODEL ($OLLAMA_MODEL)."
+fi
 if [ "$OS" = "macos" ]; then
   echo "  - Terminal: Ghostty reads ~/.config/ghostty/config (Dracula, just linked)."
   echo "    iTerm2 (if still used): import iterm/Dracula.itermcolors + load the plist."

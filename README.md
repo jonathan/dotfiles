@@ -116,6 +116,7 @@ Flags (combinable):
 - `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
 - `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
 - `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
+- `--ollama` — install [Ollama](https://ollama.com) and pull the local **DeepSeek** model Neovim talks to (`deepseek-coder-v2:16b`). Opt-in and separate from `--brew`/`--apt` because the model is several GB. See [Local LLM (Ollama + DeepSeek)](#local-llm-ollama--deepseek).
 
 The script detects the OS and resolves the repo from its own location, so it works wherever you clone it.
 
@@ -332,6 +333,18 @@ pwsh -File windows\setup.ps1 -Winget -Work  # also link the work op-run template
 
 > **Caveats.** Symlinks on Windows need Developer Mode (or an elevated shell); `setup.ps1` falls back to copying and warns if it can't link. Neovim's config goes in `~\AppData\Local\nvim` (clone the separate repo there). Install a Nerd Font and set it in Windows Terminal for prompt/eza glyphs. **This variant is authored on macOS and hasn't been run on Windows** — review before relying on it.
 
+## Local LLM (Ollama + DeepSeek)
+
+A local, offline code assistant for Neovim, run via [Ollama](https://ollama.com). `./setup.sh --ollama` installs Ollama and pulls **`deepseek-coder-v2:16b`** (a code-focused MoE model; budget ~16GB+ RAM/VRAM). It's a separate opt-in flag — not bundled into `--brew`/`--apt` — because the model download is several GB.
+
+What lives **where** (this matters — the editor config is deliberately not in this repo):
+
+- **`setup.sh`** (`--ollama`) — installs Ollama (brew on macOS, the official installer + systemd service on Linux) and pulls the model. The model name is `OLLAMA_MODEL` in `setup.sh`.
+- **`.zshrc`** — a `command -v ollama`-guarded block that exports **`OLLAMA_DEFAULT_MODEL`** (the single source of truth for the model name) and defines a small `ai` helper for one-shot terminal queries (`ai "explain this regex …"`). No-ops cleanly where Ollama isn't installed, like the other tool blocks.
+- **Neovim** — the actual chat/inline integration is [codecompanion.nvim](https://github.com/olimorris/codecompanion.nvim), configured with an **Ollama adapter** pointed at `http://localhost:11434` and the model from `$OLLAMA_DEFAULT_MODEL`. **That config lives in the separate nvim repo** (see [Neovim](#neovim)), not here — these dotfiles only own the install + the env-var handoff.
+
+Ollama serves an OpenAI-compatible API on `localhost:11434`. The server must be running for either the `ai` helper or codecompanion to work: on macOS start it with `ollama serve` (or `brew services start ollama`); on Linux the installer's systemd service handles it. To change the model, pull another (`ollama pull <name>`) and update `OLLAMA_DEFAULT_MODEL` — keep `OLLAMA_MODEL` in `setup.sh` and the nvim adapter in sync.
+
 ## Neovim
 
 Neovim is my primary editor (`EDITOR=nvim`, with `vi` aliased to `nvim` in `.zshrc`). Its config is maintained as its **own git repository** at `~/.config/nvim` (a [kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) fork, Lua-based, with its own plugin management). It is intentionally not vendored here to keep a single source of truth. Clone it separately:
@@ -348,6 +361,8 @@ git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim
 - https://draculatheme.com
 - https://neovim.io
 - https://github.com/nvim-lua/kickstart.nvim
+- https://ollama.com
+- https://github.com/olimorris/codecompanion.nvim
 - https://github.com/tmux-plugins/tpm
 - https://github.com/junegunn/fzf
 - https://github.com/sharkdp/bat
