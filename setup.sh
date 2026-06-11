@@ -35,7 +35,7 @@ esac
 #   bat     -> cat         fzf     -> fuzzy finder
 #   volta   -> node version manager (replaces nvm)
 BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
-  fzf bat eza zoxide fd ripgrep volta)
+  fzf bat eza zoxide fd ripgrep volta grpcurl)
 
 # Parse flags
 DO_BREW=0
@@ -156,6 +156,15 @@ if [ "$DO_APT" = "1" ]; then
   if [ ! -x "$HOME/.volta/bin/volta" ]; then
     echo "Installing Volta..."
     curl https://get.volta.sh | bash
+  fi
+
+  # grpcurl: on recent apt; otherwise grab the prebuilt release tarball.
+  if ! command -v grpcurl >/dev/null; then
+    sudo apt-get install -y grpcurl 2>/dev/null || {
+      echo "Installing grpcurl from GitHub releases..."
+      curl -sSL "https://github.com/fullstorydev/grpcurl/releases/latest/download/grpcurl_$(uname -s)_$(uname -m).tar.gz" \
+        | sudo tar -xz -C /usr/local/bin grpcurl
+    }
   fi
 
   install_zinit

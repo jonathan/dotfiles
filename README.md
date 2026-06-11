@@ -38,6 +38,22 @@ Files under `config/` mirror their destination under `~/.config/` (e.g. `config/
 
 > **Migrated off nvm:** the old `nvm` + `load-nvmrc` `chpwd` hook was removed from `.zshrc` — it slowed every directory change and duplicated Volta, which handles version switching automatically.
 
+### HTTP / gRPC helpers
+
+`.zshrc` adds small functions for `curl` and [`grpcurl`](https://github.com/fullstorydev/grpcurl) (each guarded by `command -v`, all pass extra args through). `curl` and `grpcurl` themselves are left unaliased — these are new names alongside them.
+
+| Helper | Does | Expands to |
+|--------|------|------------|
+| `curlj <url>` | GET + pretty-print JSON (via `bat`, raw fallback) | `curl -fsS … \| bat -l json` |
+| `curlh <url>` | response headers only | `curl -sS -D - -o /dev/null …` |
+| `curlt <url>` | latency breakdown (DNS/connect/TLS/TTFB/total) | `curl -w <timing template>` |
+| `gcurl <host> …` | grpcurl on a local non-TLS server | `grpcurl -plaintext …` |
+| `gcurld <host> <method> <json>` | call a method with a request body | `grpcurl -plaintext -d <json> …` |
+| `gcls <host>` | list services (server reflection) | `grpcurl -plaintext <host> list` |
+| `gcdesc <host> <symbol>` | describe a service/method/message | `grpcurl -plaintext <host> describe <symbol>` |
+
+The `grpcurl` helpers default to `-plaintext` since local/dev gRPC servers are usually non-TLS; for TLS just use `grpcurl` directly or pass your own flags. Pretty-printing needs no `jq` — it uses `bat` if present, else prints raw.
+
 ## Prerequisites
 
 The easiest path is `setup.sh` with the right flag for your platform (`--brew` on macOS, `--apt` on Ubuntu/Debian) — see [Installation](#installation). To install manually:
@@ -190,6 +206,76 @@ On a work machine, `gh` is logged into both the work and personal accounts (`gh 
 > **Why this matters:** the old approach kept ~25 secrets as plaintext `export`s in `~/.env_vars.zsh`, loaded into *every* process's environment. Moving the high-value ones into 1Password and injecting them per-command via `op run` removes them from disk and from the global environment. Non-secrets (usernames, emails, URLs) can stay as plain env vars. `~/.env_vars.zsh` itself stays untracked (see [Secrets](#secrets--machine-local-config)).
 
 `op` stores **no secrets on disk** — vault data is encrypted server-side and unlocked via the desktop app/biometrics — so this shell glue is safe to track. The `~/.config/op/config` file (account metadata, device id) is machine-specific and is **not** tracked, same as `~/.ssh/config`.
+
+#### Setting up: moving env-var secrets into 1Password
+
+A walkthrough for replacing plaintext `export FOO_TOKEN=…` lines with on-demand 1Password lookups. Generic — substitute your own vault/item/field names.
+
+**1. Install the CLI and enable the desktop-app integration.**
+
+```sh
+brew install 1password-cli            # macOS; or see https://1password.com/downloads/command-line/
+op --version
+```
+
+Then in the **1Password desktop app**: Settings → Developer → check **"Integrate with 1Password CLI"** (and enable Touch ID / biometric unlock). Quit and relaunch the app if the CLI doesn't connect.
+
+> **Don't health-check with `op whoami`** — under the desktop-app integration it reports "not signed in" even when working. Test with a real command instead: `op item list` or `op read …`.
+
+**2. Store the secret in a vault.** Either in the desktop app (add fields to an item), or via the CLI. Create a new item:
+
+```sh
+# --category and --title are required; [password] makes a field concealed.
+op item create --category "API Credential" --title "My Service" --vault Private \
+  'token[password]=PUT_REAL_TOKEN_HERE' \
+  'username=me@example.com'
+```
+
+Or add fields to an existing item (no `--category` needed):
+
+```sh
+op item edit "My Service" --vault Private \
+  'api_key[password]=PUT_REAL_KEY_HERE' \
+  'base_url[text]=https://api.example.com'
+```
+
+> Typing a literal secret puts it in shell history. Prefer adding fields in the **desktop app**, or reference an existing env var so the literal never appears: `op item edit "My Service" "token[password]=$EXISTING_TOKEN"` (prefix the line with a space if you have `HIST_IGNORE_SPACE`).
+
+**3. Find the `op://` reference path.** It's `op://<vault>/<item>/<field>`. List field labels (no values shown) with:
+
+```sh
+op item get "My Service" --vault Private --format=json | grep -E '"(label|id)"'
+# then read one to confirm the path resolves:
+op read "op://Private/My Service/token"
+```
+
+**4. Write a reference-only env-file** (safe — no secrets, just pointers). Name fields multiple times if your tooling expects several env names for one secret:
+
+```sh
+# ~/.config/op/myservice.env
+export MY_SERVICE_TOKEN="op://Private/My Service/token"
+export MY_SERVICE_USER="op://Private/My Service/username"
+export MY_SERVICE_URL="op://Private/My Service/base_url"
+```
+
+**5. Run commands with the secrets injected** for that command only — never exported globally, never written to disk:
+
+```sh
+openv personal ~/.config/op/myservice.env -- mycli deploy
+# or directly:
+op run --account my.1password.com --env-file=~/.config/op/myservice.env -- mycli deploy
+```
+
+Verify everything resolves without printing the values:
+
+```sh
+openv personal ~/.config/op/myservice.env -- sh -c 'echo "${MY_SERVICE_TOKEN:+set}"'   # -> "set"
+```
+
+**6. Remove the plaintext.** Once `openv` works, delete the corresponding `export` lines from `~/.env_vars.zsh`. Keep non-secrets (usernames, URLs) as plain env vars if you prefer — there's no benefit to vaulting those. Open a fresh shell and confirm the secret is gone from the normal environment (`echo "${MY_SERVICE_TOKEN:-gone}"`) but present under `openv`.
+
+> **Optional convenience:** wrap a frequently-used env-file in a one-word function, like the `artenv` helper does:
+> `myenv() { openv personal ~/.config/op/myservice.env "$@"; }` → then `myenv -- mycli deploy`.
 
 ## Shell startup
 

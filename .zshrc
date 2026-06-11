@@ -196,6 +196,44 @@ if command -v zoxide >/dev/null; then
   eval "$(zoxide init zsh)"
 fi
 
+# --- HTTP / gRPC helpers ----------------------------------------------------
+# Pretty-print JSON on stdin via bat if available, else pass through untouched.
+# (No jq dependency — falls back to raw so it works anywhere.)
+_ppjson() {
+  if command -v bat >/dev/null; then bat --language=json --style=plain --paging=never
+  else cat; fi
+}
+
+# curl conveniences (new names — `curl` itself is left alone on purpose).
+if command -v curl >/dev/null; then
+  # curlj <url> [curl args] — GET and pretty-print the JSON body.
+  curlj() { curl -fsS "$@" | _ppjson; }
+  # curlh <url> [curl args] — show response headers only (status + headers).
+  curlh() { curl -sS -D - -o /dev/null "$@"; }
+  # curlt <url> [curl args] — latency breakdown (DNS / connect / TLS / TTFB / total).
+  curlt() {
+    curl -sS -o /dev/null -w \
+'dns:      %{time_namelookup}s\nconnect:  %{time_connect}s\ntls:      %{time_appconnect}s\nttfb:     %{time_starttransfer}s\ntotal:    %{time_total}s\n' \
+      "$@"
+  }
+fi
+
+# grpcurl conveniences — most dev servers are local + non-TLS, so default to
+# -plaintext. All pass extra args through (add -H, -import-path, TLS, etc.).
+if command -v grpcurl >/dev/null; then
+  # gcurl <host:port> <args...> — grpcurl with -plaintext (e.g. gcurl :50051 list).
+  gcurl() { grpcurl -plaintext "$@"; }
+  # gcurld <host:port> <method> <json> — call a method with a request body.
+  gcurld() {
+    local host="$1" method="$2" body="${3:-}"
+    grpcurl -plaintext -d "$body" "$host" "$method"
+  }
+  # gcls <host:port> — list services exposed via server reflection.
+  gcls() { grpcurl -plaintext "$1" list; }
+  # gcdesc <host:port> <symbol> — describe a service/method/message.
+  gcdesc() { grpcurl -plaintext "$1" describe "${2:-}"; }
+fi
+
 # gh multi-account: keep the active `gh` account aligned with the repo I'm in.
 # ONLY matters on a machine with two GitHub accounts (i.e. a work machine).
 # On a personal-only machine there's one gh account and the remote never carries
