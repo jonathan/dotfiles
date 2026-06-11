@@ -2,7 +2,7 @@
 
 Personal cross-platform dotfiles (**macOS** and **Ubuntu/Debian Linux**) for a terminal-centric dev environment: **zsh** ([zinit](https://github.com/zdharma-continuum/zinit) plugin manager + oh-my-posh prompt), **tmux**, **Neovim**, plus a set of modern, fast CLI tools (**eza**, **zoxide**, **fd**, **ripgrep**, **bat**, **fzf**) and **Ghostty** as the terminal, with the Dracula theme throughout. Shell startup is ~0.15s (zinit loads plugins deferred — see [Shell startup](#shell-startup)).
 
-The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the same `.zshrc`/`.tmux.conf` work on both platforms — see [Platform notes](#platform-notes). The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim).
+The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the same `.zshrc`/`.tmux.conf` work on both platforms — see [Platform notes](#platform-notes). There's also a **native Windows / PowerShell** variant under `windows/` for a work VM — see [Windows](#windows). The Neovim config is maintained as its own git repository and is intentionally **not** in this repo — see [Neovim](#neovim).
 
 ## What's in here
 
@@ -19,7 +19,9 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset (legacy macOS terminal) |
 | `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences (legacy macOS terminal) |
 | `ssh/config.example` | — | Template (not symlinked) — two-GitHub-account SSH setup; see [SSH config](#ssh-config) |
-| `setup.sh` | — | Symlinks the above into `$HOME` (see [Installation](#installation)) |
+| `setup.sh` | — | Symlinks the above into `$HOME` (macOS/Linux; see [Installation](#installation)) |
+| `windows/Microsoft.PowerShell_profile.ps1` | `$PROFILE.CurrentUserAllHosts` | **Windows** — PowerShell profile (prompt, PSReadLine, CLI aliases, op/curl/grpcurl); see [Windows](#windows) |
+| `windows/setup.ps1` | — | **Windows** — links the profile + shared configs, installs tools via winget |
 
 Files under `config/` mirror their destination under `~/.config/` (e.g. `config/bat/config` → `~/.config/bat/config`).
 
@@ -303,6 +305,32 @@ The shared config files branch on the OS at runtime rather than keeping separate
 | Terminal | Ghostty (or legacy iTerm2) | Ghostty |
 
 Things to install on Linux that macOS doesn't need: `wl-clipboard` and/or `xclip` (tmux copy), and `acpi` (the tmux status bar's battery readout — already referenced in `status-right`).
+
+## Windows
+
+A native **PowerShell** variant lives under `windows/`, for a **work VM** where WSL isn't available. It's not the zsh setup — Windows has no native zsh or tmux — but it recreates the parts that port cleanly: the same **oh-my-posh Dracula prompt** (the `.jonathanhicks.omp.json` theme is shared, unchanged), the same modern CLI tools, and **PSReadLine** as the native stand-in for autosuggestions + syntax highlighting + history search (with Vi edit mode, matching `bindkey -v`).
+
+Because the VM is single-account, the Windows profile **omits** the personal/work multi-account machinery (no `gh` switcher, no `opp`/`opw` split — just one account).
+
+```powershell
+git clone <this-repo> $HOME\projects\dotfiles
+cd $HOME\projects\dotfiles
+pwsh -File windows\setup.ps1                # link the profile + shared configs
+pwsh -File windows\setup.ps1 -Winget        # also install tools via winget
+pwsh -File windows\setup.ps1 -Winget -Work  # also link the work op-run template
+```
+
+| zsh feature | Windows equivalent |
+|-------------|--------------------|
+| oh-my-posh prompt | same, `oh-my-posh init pwsh` with the shared theme |
+| zinit plugins (autosuggest / highlight / history) | **PSReadLine** (built into PS7), Vi edit mode |
+| `eza`/`zoxide`/`fd`/`rg`/`bat`/`fzf` | same tools via winget; aliases/functions in the profile |
+| `curlj`/`gcurl`/… helpers | ported as PowerShell functions (`curl.exe`, `grpcurl`) |
+| `op run` / `artenv` | `openv <env-file> -- <cmd>` / `artenv` (work account only) |
+| `gh`/`op` multi-account, tmux, Ghostty | **dropped** — single account; no tmux/Ghostty on native Windows |
+| secrets/per-VM extras | `~\.env_vars.ps1`, `~\.bootstrap.ps1` (untracked) |
+
+> **Caveats.** Symlinks on Windows need Developer Mode (or an elevated shell); `setup.ps1` falls back to copying and warns if it can't link. Neovim's config goes in `~\AppData\Local\nvim` (clone the separate repo there). Install a Nerd Font and set it in Windows Terminal for prompt/eza glyphs. **This variant is authored on macOS and hasn't been run on Windows** — review before relying on it.
 
 ## Neovim
 
