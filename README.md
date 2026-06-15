@@ -307,6 +307,24 @@ The shared config files branch on the OS at runtime rather than keeping separate
 
 Things to install on Linux that macOS doesn't need: `wl-clipboard` and/or `xclip` (tmux copy), and `acpi` (the tmux status bar's battery readout — already referenced in `status-right`).
 
+### Touch ID for `sudo` (macOS)
+
+A manual, **per-machine** step — not symlink-managed by `setup.sh`, because it edits a system path (`/etc/pam.d/`), not a `$HOME` dotfile. It makes `sudo` (and the password prompts during `brew` cask installs/updates) accept Touch ID instead of a typed password. Note: 1Password/`op` can't do this — `sudo` auth goes through PAM (`pam_tid.so`), not the 1Password agent (which only handles SSH keys / secret injection).
+
+On Sonoma (14) and later, the supported way is a drop-in `sudo_local` file that **survives macOS updates** (don't edit `/etc/pam.d/sudo` directly — `auth include sudo_local` is already there). The extra `pam_reattach` line makes Touch ID work **inside tmux/screen** (without it, `sudo` in a tmux pane silently falls back to a password):
+
+```sh
+brew install pam-reattach     # so Touch ID prompts work inside tmux
+sudo tee /etc/pam.d/sudo_local >/dev/null <<'EOF'
+# sudo_local: survives system updates; included by /etc/pam.d/sudo
+# pam_reattach (Touch ID inside tmux) must come before pam_tid
+auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+auth       sufficient     pam_tid.so
+EOF
+```
+
+Test in a **new** shell: `sudo -k; sudo whoami` should prompt for a fingerprint. Caveats: Touch ID only works at the physical machine — over SSH it correctly falls back to a password; and the `pam_reattach.so` path is `/opt/homebrew/...` on Apple Silicon (Intel Homebrew uses `/usr/local/...`).
+
 ## Windows
 
 A native **PowerShell** variant lives under `windows/`, for a **work VM** where WSL isn't available. It's not the zsh setup — Windows has no native zsh or tmux — but it recreates the parts that port cleanly: the same **oh-my-posh Dracula prompt** (the `.jonathanhicks.omp.json` theme is shared, unchanged), the same modern CLI tools, and **PSReadLine** as the native stand-in for autosuggestions + syntax highlighting + history search (with Vi edit mode, matching `bindkey -v`).
