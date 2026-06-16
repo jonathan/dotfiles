@@ -72,7 +72,6 @@ fi
 zinit wait lucid for \
   atload'_zsh_autosuggest_start' \
       zsh-users/zsh-autosuggestions \
-  atinit'ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets)' \
       zdharma-continuum/fast-syntax-highlighting \
   atload'
     bindkey "^[[A" history-substring-search-up;   bindkey "^[[B" history-substring-search-down
@@ -85,8 +84,6 @@ zinit wait lucid for \
 # Everything below here is unchanged from the previous (oh-my-zsh) .zshrc —
 # env vars, PATH, aliases, OS-detection, fzf/zoxide/oh-my-posh init.
 # ============================================================================
-
-ZSH_COLORIZE_TOOL=chroma
 
 # Debian/Ubuntu rename these binaries to avoid clashes. Alias them back to the
 # names the rest of this config (and muscle memory) expects.
