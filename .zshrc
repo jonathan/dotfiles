@@ -45,6 +45,11 @@ else
   compinit -C         # fresh enough -> reuse cache (fast path)
 fi
 
+# Case-insensitive tab completion: typed lowercase also matches uppercase
+# (so `cd dow<TAB>` completes `Downloads`). One-way only — a capital you type
+# on purpose still matches exactly. Static zstyle, safe with the -C fast path.
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+
 # --- Plugins (turbo / deferred where safe) ----------------------------------
 # git aliases + helpers from oh-my-zsh's git plugin (the main thing used daily).
 zinit wait lucid for OMZ::plugins/git/git.plugin.zsh
