@@ -11,7 +11,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `.zshrc` | `~/.zshrc` | Main zsh config — zinit plugins (deferred), aliases, PATH, fzf/zoxide/volta |
 | `.zprofile` | `~/.zprofile` | Login-shell setup — Homebrew/Linuxbrew `shellenv`, .NET tools on PATH |
 | `.jonathanhicks.omp.json` | `~/.jonathanhicks.omp.json` | oh-my-posh prompt theme (Dracula colors) |
-| `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode (OS-aware clipboard), dracula/tmux, vim-tmux navigation |
+| `.tmux.conf` | `~/.tmux.conf` | tmux config — `C-a` prefix, vi copy mode (OS-aware clipboard), dracula/tmux, vim-tmux navigation (bindings: [TMUX.md](TMUX.md)) |
 | `config/bat/config` | `~/.config/bat/config` | bat pager defaults (Dracula theme) |
 | `config/git/ignore` | `~/.config/git/ignore` | Global gitignore |
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal config (Dracula) — macOS + Linux |
@@ -146,7 +146,9 @@ Then set up the editor and tmux plugins:
   ```sh
   git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
   ```
-  Then inside tmux press prefix (`C-a`) + `I` to install plugins.
+  Then inside tmux press prefix (`C-a`) + `I` to install plugins. For day-to-day
+  bindings (sessions, splits, vim-pane navigation, copy mode), see the
+  [tmux cheatsheet](TMUX.md).
 
 Finally, the terminal:
 
