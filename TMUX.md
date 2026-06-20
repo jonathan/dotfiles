@@ -67,6 +67,20 @@ Splits inherit the active pane's cwd (`-c "#{pane_current_path}"`), so no re-`cd
 Mouse also works (`mouse on`): scroll to enter copy mode, drag to select → auto-copies
 to the system clipboard.
 
+## Vi keys everywhere
+
+Both of tmux's vi/emacs-selectable modes are set to **vi**:
+
+- **`mode-keys vi`** — copy/scroll mode (the table above).
+- **`status-keys vi`** — the command prompt (`<P> :`): vi editing keys, not emacs.
+
+> Gotcha: `tmux-sensible` unconditionally force-sets `status-keys emacs`, and tpm runs
+> near the bottom of `.tmux.conf` — so `status-keys vi` is re-asserted *after* the tpm
+> `run` line to win. Don't move it back up top or the emacs default silently returns.
+
+Everything else (pane/window management) is prefix-based by tmux's design — that's not a
+vi/emacs setting, so there's nothing further to switch there.
+
 ## Config reload
 
 After editing `~/.tmux.conf`: `<P> r` (bound to `source-file`).
