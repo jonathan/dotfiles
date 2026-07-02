@@ -30,6 +30,7 @@ Numbering starts at **1** (`base-index 1`).
 |---|---|
 | New window | `<P> c` |
 | Next / previous | `<P> n` / `<P> p` |
+| Next / previous (tab motion, no prefix) | `⌘-Shift-]` / `⌘-Shift-[` on macOS *(Ghostty rewrites these to `M-}` / `M-{`; Super-Shift-brackets on Linux)* |
 | Jump to window N | `<P> 1` … `<P> 9` |
 | **Toggle last window** | `<P> Ctrl-b` *(custom bind)* |
 | Rename window | `<P> ,` |

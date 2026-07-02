@@ -25,3 +25,15 @@ scrollback-limit = 10000000
 # macOS-only options are ignored on Linux and vice-versa, so it's safe to
 # keep both here.
 macos-option-as-alt = true
+
+# Cmd-Shift-[ / Cmd-Shift-] : switch tmux windows with the Mac tab motion.
+# By default these switch GHOSTTY tabs (super+shift+[ = previous_tab); we
+# override them to instead send ESC+{ / ESC+} — the M-{ / M-} sequence that
+# tmux's `bind -n "M-{"` / `"M-}"` (in .tmux.conf) listens for. `super` = Cmd.
+# Outside tmux these just emit those bytes, which shells ignore harmlessly.
+# macOS-only in practice: `super` is Cmd here but the Super/Windows key on Linux,
+# which the desktop compositor grabs first — so these are inert there (harmless).
+# On Linux use Alt-Shift-[ / Alt-Shift-] instead: Alt is Meta, so it sends the
+# same M-{ / M-} to tmux directly, no Ghostty rewrite needed.
+keybind = super+shift+left_bracket=text:\x1b{
+keybind = super+shift+right_bracket=text:\x1b}
