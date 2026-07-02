@@ -47,6 +47,7 @@ Splits inherit the active pane's cwd (`-c "#{pane_current_path}"`), so no re-`cd
 | **Move between panes** | `Ctrl-h/j/k/l` — **no prefix!** |
 | Close pane | `<P> x` |
 | Zoom pane fullscreen (toggle) | `<P> z` |
+| Resize pane | `<P>` then `Ctrl-↑/↓/←/→` — hold `Ctrl`, tap arrows (repeatable) |
 
 > The `Ctrl-h/j/k/l` navigation is the best-configured, most-underused feature here:
 > via [vim-tmux-navigator](https://github.com/christoomey/vim-tmux-navigator) it moves
