@@ -318,7 +318,7 @@ fi
 # unlocked via the desktop app/biometrics — so this shell glue is safe to track.
 if command -v op >/dev/null; then
   # Account shorthands (use the account URLs from `op account list`).
-  export OP_PERSONAL_ACCOUNT="my.1password.com"
+  export OP_PERSONAL_ACCOUNT="hicks-armstrong-family.1password.com"
   export OP_WORK_ACCOUNT="salesforce.1password.com"
 
   # Default bare `op` to the personal account (override per-call with --account,
