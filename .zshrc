@@ -102,7 +102,10 @@ fi
 # eza (modern ls) — falls back to coreutils ls if eza isn't installed
 if command -v eza >/dev/null; then
   alias ls="eza --group-directories-first --icons --git"
-  alias ll="eza -lFh --group-directories-first --icons --git"
+  # Long-form flags on purpose: bundling as -lFh breaks because newer eza's
+  # -F/--classify takes an optional WHEN value (reads the following 'h' as it),
+  # and a bare -h token would hit the global `-h` help alias below (line ~133).
+  alias ll="eza -l --classify --header --group-directories-first --icons --git"
   alias la="eza -a --group-directories-first --icons --git"
   alias lt="eza --tree --level=2 --icons"
 else
