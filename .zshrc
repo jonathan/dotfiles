@@ -356,6 +356,26 @@ if command -v op >/dev/null; then
   # Convenience: run a command with the Artifactory/Nexus secrets in scope.
   #   artenv -- npm install     (secrets live only for that command)
   artenv() { openv work ~/.config/op/artifactory.env "$@"; }
+
+  # Personal GitHub PAT stored in 1Password (Private vault). Referenced by title
+  # via `op item get` so it survives item-id changes; --reveal prints the value.
+  #   ghpat                 -> print the token (e.g. `gh auth login --with-token`)
+  _GH_PAT_ITEM="GitHub PAT - personal (CLI)"
+  ghpat() {
+    op item get "$_GH_PAT_ITEM" --vault Private \
+      --account "$OP_PERSONAL_ACCOUNT" --fields label=credential --reveal
+  }
+
+  # Run a command with GH_TOKEN set to the personal PAT, but ONLY for that one
+  # command — deliberately NOT exported globally, because a global GH_TOKEN
+  # overrides gh's keyring accounts and would silently defeat the ghsync
+  # work/personal switcher above. Use for tools/scripts that read GH_TOKEN.
+  #   ghtokenv -- <command...>     e.g. ghtokenv -- ./deploy.sh
+  ghtokenv() {
+    [[ "$1" == "--" ]] && shift
+    local tok; tok=$(ghpat) || { print -u2 "ghtokenv: could not read PAT from 1Password"; return 1; }
+    GH_TOKEN="$tok" "$@"
+  }
 fi
 
 # Node version management is handled by Volta (automatic per-project switching,
