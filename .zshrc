@@ -331,12 +331,21 @@ if command -v op >/dev/null; then
 
   # 1Password SSH agent — lets op serve SSH keys. Path differs by OS; only set
   # SSH_AUTH_SOCK if the socket actually exists (agent enabled in the app).
-  for _op_sock in \
-    "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" \
-    "$HOME/.1password/agent.sock"; do
-    [ -S "$_op_sock" ] && export SSH_AUTH_SOCK="$_op_sock" && break
-  done
-  unset _op_sock
+  #
+  # Guard on an unset SSH_AUTH_SOCK: the macOS socket lives inside 1Password's
+  # Group Container, and stat-ing it (`-S`) counts as cross-app data access, so
+  # on Sequoia every probe pops the "Ghostty would like to access data from
+  # other apps" TCC prompt. Child shells inherit SSH_AUTH_SOCK (tmux propagates
+  # it), so skipping the probe when it's already set means the container is
+  # touched once per tmux server instead of on every new window/pane.
+  if [ -z "$SSH_AUTH_SOCK" ]; then
+    for _op_sock in \
+      "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock" \
+      "$HOME/.1password/agent.sock"; do
+      [ -S "$_op_sock" ] && export SSH_AUTH_SOCK="$_op_sock" && break
+    done
+    unset _op_sock
+  fi
 
   # Run a command with secrets injected from an op env-file template (op://
   # references resolved at call time, never written to disk or left in the
