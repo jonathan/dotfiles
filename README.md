@@ -36,7 +36,26 @@ Files under `config/` mirror their destination under `~/.config/` (e.g. `config/
 | `find` | [`fd`](https://github.com/sharkdp/fd) | fzf's file/dir source (`FZF_DEFAULT_COMMAND`) |
 | `grep` / `ag` | [`ripgrep`](https://github.com/BurntSushi/ripgrep) (`rg`) | fast recursive search |
 | `cat` | [`bat`](https://github.com/sharkdp/bat) | syntax-highlighted pager; also `-h`/`--help` output |
+| `man` | [`bat-extras`](https://github.com/eth-p/bat-extras) (`batman`) | man pages through bat; also ships `batgrep`/`batdiff` |
+| `top` | [`btop`](https://github.com/aristocratos/btop) | resource monitor (aliased over `top`) |
+| `du` | [`dust`](https://github.com/bootandy/dust) | sorted disk-usage tree with bars (**not** aliased — see below) |
+| `ps` | [`procs`](https://github.com/dalance/procs) | human-readable process list (**not** aliased — see below) |
+| `jq` (for YAML) | [`yq`](https://github.com/mikefarah/yq) | same query language over YAML/TOML/XML (helm values, `.strata.yml`) |
 | `nvm` | [Volta](https://volta.sh) | per-project Node version switching (no shell hook) |
+
+Plus tools with no classic equivalent:
+
+| Tool | Used for |
+|------|----------|
+| [`lazygit`](https://github.com/jesseduffield/lazygit) | git TUI (`lg`) — interactive staging/hunk-splitting; inherits the delta pager |
+| [`difftastic`](https://github.com/Wilfred/difftastic) | structural (AST) diff — `dft` / `dfts` |
+| [`hyperfine`](https://github.com/sharkdp/hyperfine) | statistical benchmarking (used for the startup numbers below) |
+| [`stern`](https://github.com/stern/stern) | tail logs across all pods matching a regex — `slog` / `slogn` |
+| [`kubectx`](https://github.com/ahmetb/kubectx) | switch kube context (`kctx`) / namespace (`kns`) |
+
+> **`dust` and `procs` are installed but deliberately not aliased over `du`/`ps`.** Their flags are incompatible with the invocations that are muscle memory (`du -sh *`, `ps aux`, `ps -ef`), so aliasing them would just produce errors. Same reasoning as leaving `curl`/`grpcurl` unaliased — new names alongside, not on top of. `btop` *is* aliased over `top`, since `top`'s flags aren't worth preserving (`command top` still reaches the real binary).
+
+> **`difftastic` does not replace `delta`.** `delta` stays the git pager (configured in `~/.gitconfig`, which is machine-local and not tracked here) for `log`/`show`/`diff`. `difft` diffs the *syntax tree*, so a reindent or a moved brace reports "No syntactic changes" where a line diff shows edits. It's wired as opt-in `dft`/`dfts` functions rather than git config, precisely so it doesn't take over the default path.
 
 > **Migrated off nvm:** the old `nvm` + `load-nvmrc` `chpwd` hook was removed from `.zshrc` — it slowed every directory change and duplicated Volta, which handles version switching automatically.
 
@@ -67,7 +86,9 @@ The easiest path is `setup.sh` with the right flag for your platform (`--brew` o
 brew install zsh oh-my-posh neovim tmux git
 
 # Modern CLI tools used by the configs
-brew install fzf bat eza zoxide fd ripgrep volta
+brew install fzf bat eza zoxide fd ripgrep volta grpcurl
+brew install yq hyperfine lazygit dust procs btop difftastic bat-extras \
+             stern kubectx
 
 # Terminal
 brew install --cask ghostty
@@ -80,16 +101,28 @@ zsh plugins (autosuggestions, fast-syntax-highlighting, history-substring-search
 Some packages have name/binary quirks (handled automatically by `.zshrc`, noted here for awareness):
 
 ```sh
-# In apt — note: fd is `fd-find` (binary fdfind), bat installs binary batcat
+# In apt — note: fd is `fd-find` (binary fdfind), bat installs binary batcat,
+# and dust is packaged as `du-dust`
 sudo apt update
 sudo apt install -y zsh git tmux curl fzf bat fd-find ripgrep \
                     wl-clipboard xclip acpi build-essential
+sudo apt install -y btop du-dust hyperfine   # only on 22.04+ / Debian 12+
 
 # Not in base apt:
 #   - eza        -> community apt repo (see setup.sh --apt) or `cargo install eza`
 #   - neovim     -> apt's is old; use ppa:neovim-ppa/unstable
 #   - oh-my-posh -> curl -s https://ohmyposh.dev/install.sh | bash -s
 #   - volta      -> curl https://get.volta.sh | bash
+#   - yq         -> apt's `yq` may be the unrelated Python wrapper; use
+#                   mikefarah/yq's release binary instead
+#   - procs      -> apt HAS a `procs` package, but it is a DIFFERENT tool;
+#                   install dalance/procs from GitHub releases
+#   - difftastic / lazygit / stern -> GitHub release binaries
+#   - kubectx    -> shell scripts from the repo
+#   - bat-extras -> build.sh from the repo; needs a real `bat` on PATH, so
+#                   setup.sh symlinks batcat -> ~/.local/bin/bat first
+
+# `./setup.sh --apt` does all of the above, including the fallbacks.
 
 # Terminal — Ghostty (see https://ghostty.org/docs/install/binary for the apt/deb)
 ```
@@ -113,7 +146,7 @@ cd "$HOME/projects/dotfiles"
 Flags (combinable):
 
 - `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus zinit
-- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta).
+- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras).
 - `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
 - `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
 - `--ollama` — install [Ollama](https://ollama.com) and pull the local **DeepSeek** model Neovim talks to (`deepseek-coder-v2:16b`). Opt-in and separate from `--brew`/`--apt` because the model is several GB. See [Local LLM (Ollama + DeepSeek)](#local-llm-ollama--deepseek).

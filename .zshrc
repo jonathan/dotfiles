@@ -130,9 +130,31 @@ alias zshrc='${=EDITOR} ~/.zshrc'
 
 alias du='du -h'
 
+# lazygit — TUI over the git config in ~/.gitconfig (picks up delta as the pager).
+if command -v lazygit >/dev/null; then
+  alias lg='lazygit'
+fi
+
+# btop replaces top for interactive use — `top` takes no flags worth preserving,
+# so aliasing it is safe. `command top` still gets the real binary.
+if command -v btop >/dev/null; then
+  alias top='btop'
+fi
+
+# dust (du) and procs (ps) are installed but deliberately NOT aliased over the
+# classics: their flags are incompatible with the invocations that are muscle
+# memory (`du -sh *`, `ps aux` / `ps -ef`), which would just error out. Same
+# reasoning as curl/grpcurl below — new names alongside, not on top of.
+
 # Use bat for any help commands
 alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
 alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
+
+# bat-extras — man pages through bat (syntax-highlighted, paged). Complements
+# the -h/--help aliases above. batgrep/batdiff/prettybat come along with it.
+if command -v batman >/dev/null; then
+  alias man='batman'
+fi
 
 #alias restart_dock=osascript -e 'quit application "Dock"'
 
@@ -237,6 +259,42 @@ if command -v grpcurl >/dev/null; then
   gcls() { grpcurl -plaintext "$1" list; }
   # gcdesc <host:port> <symbol> — describe a service/method/message.
   gcdesc() { grpcurl -plaintext "$1" describe "${2:-}"; }
+fi
+
+# --- difftastic (structural diff) -------------------------------------------
+# `difft` diffs the syntax tree instead of lines, so a reindent or a moved brace
+# shows as no change. It does NOT replace delta: delta is configured in
+# ~/.gitconfig as the pager for log/show/diff (side-by-side + zebra moved-line
+# detection) and stays the default. These are opt-in per-invocation wrappers.
+#
+# NOTE: ~/.gitconfig is not tracked in this repo (machine-local), so this is
+# wired as shell functions rather than [diff]/[difftool] git config entries.
+if command -v difft >/dev/null; then
+  # dft [git-diff args] — structural diff of the working tree (or any revspec).
+  #   dft            / dft HEAD~1 / dft main..HEAD / dft -- path/to/file
+  dft() { GIT_EXTERNAL_DIFF=difft git diff --ext-diff "$@"; }
+  # dfts [git-show args] — structural diff of a single commit.
+  dfts() { GIT_EXTERNAL_DIFF=difft git show --ext-diff "$@"; }
+fi
+
+# --- Kubernetes helpers ------------------------------------------------------
+# k9s covers browsing; these fill the two gaps it handles poorly.
+# kubectx/kubens just get shorter aliases. Called with no argument they show an
+# interactive picker via fzf automatically (they detect it on PATH themselves —
+# nothing to configure here); with an argument they switch directly.
+if command -v kubectx >/dev/null; then
+  alias kctx='kubectx'
+fi
+if command -v kubens >/dev/null; then
+  alias kns='kubens'
+fi
+
+# stern — tail logs across every pod matching a regex (multi-pod, colorized).
+if command -v stern >/dev/null; then
+  # slog <pod-regex> [stern args] — tail matching pods in the current namespace.
+  slog() { stern "$@"; }
+  # slogn <namespace> <pod-regex> [stern args] — same, for a specific namespace.
+  slogn() { local ns="$1"; shift; stern -n "$ns" "$@"; }
 fi
 
 # --- Ollama / local DeepSeek -------------------------------------------------

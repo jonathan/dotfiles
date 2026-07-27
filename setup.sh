@@ -36,8 +36,17 @@ esac
 #   zoxide  -> cd          ripgrep -> grep/ag
 #   bat     -> cat         fzf     -> fuzzy finder
 #   volta   -> node version manager (replaces nvm)
+#   dust    -> du          procs   -> ps          btop -> top
+#   yq      -> jq, for YAML/TOML (helm values, .strata.yml, *.toml)
+#   difftastic -> `difft`, structural/AST diff (complements delta, see .zshrc)
+#   hyperfine  -> statistical benchmarking (used to measure zsh startup)
+#   lazygit    -> git TUI (inherits the delta pager from ~/.gitconfig)
+#   stern / kubectx -> multi-pod log tailing + context/namespace switching
+#   bat-extras -> batman/batgrep/batdiff (bat-powered man, grep, diff)
 BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
-  fzf bat eza zoxide fd ripgrep volta grpcurl)
+  fzf bat eza zoxide fd ripgrep volta grpcurl \
+  yq hyperfine lazygit dust procs btop difftastic bat-extras \
+  stern kubectx)
 
 # The local DeepSeek model pulled by --ollama. Code-focused MoE; ~16GB+ RAM/VRAM.
 # Keep this name in sync with OLLAMA_DEFAULT_MODEL in .zshrc (and the codecompanion
@@ -89,6 +98,49 @@ link() {
   printf '  + link  %s -> %s\n' "$dest" "$src"
 }
 
+# --- helpers for tools that aren't in apt (Linux only) ----------------------
+# GitHub release naming isn't uniform, so these two helpers cover the shapes we
+# need: resolve the latest tag, and normalize the machine arch per project.
+
+# gh_latest_tag <owner/repo> -> latest release tag, e.g. "v0.44.1" (or "" on
+# failure — every caller must handle the empty case).
+#
+# Deliberately resolves the /releases/latest REDIRECT rather than calling
+# api.github.com: the JSON API is rate-limited PER IP for unauthenticated
+# requests, and on a corporate network the whole office shares one egress IP, so
+# the API reliably returns HTTP 403 "rate limit exceeded" (confirmed on this
+# machine). The redirect is served by github.com and isn't subject to that limit.
+# Note some projects tag with a leading "v" and some don't — callers that need
+# the bare version use ${_tag#v}.
+gh_latest_tag() {
+  local url
+  url="$(curl -sSL -o /dev/null -w '%{url_effective}' \
+    "https://github.com/$1/releases/latest" 2>/dev/null)" || return 0
+  # Only trust it if we actually landed on a tag page (not the releases index).
+  case "$url" in
+    */releases/tag/*) printf '%s' "${url##*/}" ;;
+    *) return 0 ;;
+  esac
+}
+
+# arch_as <style> -> this machine's arch in the naming style a project uses.
+# Three styles because release-asset naming is not consistent across projects:
+#   go    -> amd64  / arm64     (stern)
+#   rust  -> x86_64 / aarch64   (difftastic, procs)
+#   mixed -> x86_64 / arm64     (lazygit — Go project, Rust-ish arch names)
+arch_as() {
+  local m; m="$(uname -m)"
+  case "$1:$m" in
+    go:x86_64|go:amd64)        printf 'amd64' ;;
+    go:aarch64|go:arm64)       printf 'arm64' ;;
+    rust:x86_64|rust:amd64)    printf 'x86_64' ;;
+    rust:aarch64|rust:arm64)   printf 'aarch64' ;;
+    mixed:x86_64|mixed:amd64)  printf 'x86_64' ;;
+    mixed:aarch64|mixed:arm64) printf 'arm64' ;;
+    *) printf '%s' "$m" ;;
+  esac
+}
+
 # zinit — the zsh plugin manager (.zshrc also self-installs it on first run,
 # so this is just to front-load the clone during setup).
 install_zinit() {
@@ -123,12 +175,138 @@ if [ "$DO_APT" = "1" ]; then
   # Notes on apt package names vs binaries:
   #   fd-find  -> binary is `fdfind`  (.zshrc aliases fd -> fdfind)
   #   bat      -> binary is `batcat`  (.zshrc aliases bat -> batcat)
-  #   eza / oh-my-posh / volta are not in base apt — handled below.
+  #   du-dust  -> binary is `dust`    (the apt package is NOT called `dust`)
+  #   eza / oh-my-posh / volta are not in base apt — handled below, as are
+  #   yq / procs / difftastic / lazygit / stern / kubectx / bat-extras.
+  # btop, yq and hyperfine are in apt from Ubuntu 22.04 / Debian 12 onward;
+  # `|| true` keeps an older release from failing the whole run — the GitHub
+  # fallbacks below then pick up whatever apt missed.
   sudo apt-get install -y \
     zsh git tmux curl \
     fzf bat fd-find ripgrep \
     wl-clipboard xclip acpi \
     build-essential
+  sudo apt-get install -y btop du-dust hyperfine || true
+
+  # yq: apt's `yq` on some releases is the unrelated Python wrapper. Prefer the
+  # Go binary (mikefarah/yq) that .zshrc and helm/k8s workflows expect.
+  if ! command -v yq >/dev/null; then
+    echo "Installing yq (mikefarah/yq) from GitHub releases..."
+    if sudo curl -fsSL -o /usr/local/bin/yq \
+      "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$(arch_as go)"
+    then
+      sudo chmod +x /usr/local/bin/yq
+    else
+      # Remove the partial file so it doesn't shadow a later good install.
+      echo "  ! yq install failed — skipping"
+      sudo rm -f /usr/local/bin/yq
+    fi
+  fi
+
+  # procs: apt HAS a package named `procs`, but it is an unrelated tool. Always
+  # install the Rust ps-replacement from GitHub releases to avoid the collision.
+  if ! command -v procs >/dev/null; then
+    echo "Installing procs from GitHub releases..."
+    # procs ships a .zip (not a tarball), so unzip is a hard prerequisite.
+    command -v unzip >/dev/null || sudo apt-get install -y unzip
+    _tag="$(gh_latest_tag dalance/procs)"
+    _tmp="$(mktemp -d)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest procs release — skipping"
+    elif curl -fsSL -o "$_tmp/procs.zip" \
+      "https://github.com/dalance/procs/releases/download/${_tag}/procs-${_tag}-$(arch_as rust)-linux.zip"
+    then
+      unzip -q -o "$_tmp/procs.zip" -d "$_tmp" \
+        && sudo install -m755 "$_tmp/procs" /usr/local/bin/procs
+    else
+      echo "  ! procs download failed — skipping"
+    fi
+    rm -rf "$_tmp"
+  fi
+
+  # difftastic: not in apt — prebuilt Rust binary from GitHub releases.
+  # NOTE: `set -e -o pipefail` is on, so every download below is explicitly
+  # tolerated (`|| echo ...`) — a GitHub hiccup or a renamed asset must not
+  # abort the whole setup run before the dotfiles get linked.
+  if ! command -v difft >/dev/null; then
+    echo "Installing difftastic from GitHub releases..."
+    _tag="$(gh_latest_tag Wilfred/difftastic)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest difftastic release — skipping"
+    else
+      curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${_tag}/difft-$(arch_as rust)-unknown-linux-gnu.tar.gz" \
+        | sudo tar -xz -C /usr/local/bin difft \
+        || echo "  ! difftastic install failed — skipping (dft/dfts unavailable)"
+    fi
+  fi
+
+  # lazygit: not in apt — prebuilt Go binary from GitHub releases. The asset
+  # name embeds the version WITHOUT the leading "v" that the tag carries.
+  if ! command -v lazygit >/dev/null; then
+    echo "Installing lazygit from GitHub releases..."
+    _tag="$(gh_latest_tag jesseduffield/lazygit)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest lazygit release — skipping"
+    else
+      curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/${_tag}/lazygit_${_tag#v}_Linux_$(arch_as mixed).tar.gz" \
+        | sudo tar -xz -C /usr/local/bin lazygit \
+        || echo "  ! lazygit install failed — skipping"
+    fi
+  fi
+
+  # stern: not in apt — prebuilt Go binary. Asset name also drops the leading v.
+  if ! command -v stern >/dev/null; then
+    echo "Installing stern from GitHub releases..."
+    _tag="$(gh_latest_tag stern/stern)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest stern release — skipping"
+    else
+      curl -fsSL "https://github.com/stern/stern/releases/download/${_tag}/stern_${_tag#v}_linux_$(arch_as go).tar.gz" \
+        | sudo tar -xz -C /usr/local/bin stern \
+        || echo "  ! stern install failed — skipping (slog/slogn unavailable)"
+    fi
+  fi
+
+  # kubectx/kubens: shell scripts, no compiled binary — install from the repo.
+  if ! command -v kubectx >/dev/null; then
+    echo "Installing kubectx/kubens..."
+    # Fall back to the default branch if the tag lookup failed — these are plain
+    # scripts, so tracking master is acceptable where a pinned tag isn't available.
+    _tag="$(gh_latest_tag ahmetb/kubectx)"
+    _tag="${_tag:-master}"
+    for _t in kubectx kubens; do
+      if sudo curl -fsSL -o "/usr/local/bin/$_t" \
+        "https://raw.githubusercontent.com/ahmetb/kubectx/${_tag}/$_t"
+      then
+        sudo chmod +x "/usr/local/bin/$_t"
+      else
+        echo "  ! $_t install failed — skipping"
+        sudo rm -f "/usr/local/bin/$_t"
+      fi
+    done
+  fi
+
+  # bat-extras: not in apt — build from the repo. Its scripts invoke `bat`, but
+  # Debian/Ubuntu install the binary as `batcat`, so provide a real `bat` on PATH
+  # first (a shim in ~/.local/bin, which .zshrc already puts on PATH). Without
+  # this the built batman/batgrep install fine but fail at runtime.
+  if ! command -v bat >/dev/null && command -v batcat >/dev/null; then
+    echo "Linking batcat -> ~/.local/bin/bat (bat-extras needs a real \`bat\`)..."
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v batcat)" "$HOME/.local/bin/bat"
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  if ! command -v batman >/dev/null; then
+    echo "Installing bat-extras..."
+    _tmp="$(mktemp -d)"
+    if git clone --depth=1 https://github.com/eth-p/bat-extras.git "$_tmp/bat-extras"; then
+      ( cd "$_tmp/bat-extras" \
+        && sudo ./build.sh --install --prefix=/usr/local ) || \
+        echo "  ! bat-extras install failed — skipping (batman/batgrep unavailable)"
+    fi
+    rm -rf "$_tmp"
+  fi
+  unset _tag _tmp _t
 
   # Neovim: apt's version is old. Prefer the unstable PPA for a current build.
   if ! command -v nvim >/dev/null; then
