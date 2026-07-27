@@ -32,7 +32,13 @@ installed the classic tool is still what's there — check before assuming.
   For normal line diffs, plain `git diff` is right — it's already configured to
   use `delta` as the pager.
 - `dust` instead of `du` to find what's consuming disk (sorted tree; `-d1` for
-  one level).
+  one level). Note my `~/.zshrc` has global `-h`/`--help` aliases that pipe help
+  output through `bat`, and they expand a **bare** `-h` token anywhere on a line —
+  so `du -h /path` gets rewritten into `bat ... /path` and never runs `du`
+  (`command du -h` doesn't escape it either). Bundle the flags instead
+  (`du -sh /path`, `du -hd1 /path`) — that's one token, so it's unaffected. Use
+  `dust` when you just want readable sizes, and plain `du` when you need raw
+  bytes to pipe into `sort -n`.
 - `procs` instead of `ps` for a readable process list (`procs <pattern>` filters).
 - `batman` instead of `man`, and `batgrep`/`batdiff` (from bat-extras) when
   highlighted output helps. Plain `man` is fine too.

@@ -56,6 +56,8 @@ Plus tools with no classic equivalent:
 
 > **`dust` and `procs` are installed but deliberately not aliased over `du`/`ps`.** Their flags are incompatible with the invocations that are muscle memory (`du -sh *`, `ps aux`, `ps -ef`), so aliasing them would just produce errors. Same reasoning as leaving `curl`/`grpcurl` unaliased — new names alongside, not on top of. `btop` *is* aliased over `top`, since `top`'s flags aren't worth preserving (`command top` still reaches the real binary).
 
+> **Don't put a bare `-h` inside an alias body.** The global `alias -g -- -h='-h 2>&1 | bat ...'` help shortcut expands that token *anywhere* on a line, including inside an alias it didn't write. An old `alias du='du -h'` therefore ran `bat --language=help --style=plain <path>` and never reached `du` at all. Bundled flags (`ls -lFh`, `ls -hG`) are one token and safe; where a separate `-h` is needed, quote it (`ls '-h' --color=auto`).
+
 > **`difftastic` does not replace `delta`.** `delta` stays the git pager (configured in `~/.gitconfig`, which is machine-local and not tracked here) for `log`/`show`/`diff`. `difft` diffs the *syntax tree*, so a reindent or a moved brace reports "No syntactic changes" where a line diff shows edits. It's wired as opt-in `dft`/`dfts` functions rather than git config, precisely so it doesn't take over the default path.
 
 > **Migrated off nvm:** the old `nvm` + `load-nvmrc` `chpwd` hook was removed from `.zshrc` — it slowed every directory change and duplicated Volta, which handles version switching automatically.

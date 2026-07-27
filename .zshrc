@@ -52,7 +52,13 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
 # --- Plugins (turbo / deferred where safe) ----------------------------------
 # git aliases + helpers from oh-my-zsh's git plugin (the main thing used daily).
-zinit wait lucid for OMZ::plugins/git/git.plugin.zsh
+# The atload re-asserts personal overrides AFTER the plugin's own aliases land:
+# this plugin is deferred, so anything defined in the alias section below would
+# otherwise be silently clobbered. `gts` is the live case — omz defines it as
+# `git tag --sign`, which would try to GPG-sign instead of listing tags.
+zinit wait lucid for \
+  atload'alias gts="git tag --sort version:refname"' \
+  OMZ::plugins/git/git.plugin.zsh
 
 # docker / kubectl completions — loaded after first prompt, only the completion
 # defs (not the whole omz plugin framework).
@@ -111,14 +117,19 @@ if command -v eza >/dev/null; then
 else
   # Color flag differs: BSD/macOS uses -G, GNU/Linux uses --color=auto
   if ls --color=auto >/dev/null 2>&1; then
-    alias ls="ls -h --color=auto"        # GNU coreutils (Linux)
+    # -h is QUOTED on purpose: the global `-h` help alias below (line ~150)
+    # expands a bare -h token anywhere on a line, including inside another
+    # alias's body, which would send the path argument to bat instead of ls.
+    alias ls="ls '-h' --color=auto"      # GNU coreutils (Linux)
   else
     alias ls="ls -hG"                    # BSD ls (macOS)
   fi
   alias ll="ls -lFh"
   alias la="ls -ah"
 fi
-alias gts="git tag --sort version:refname"
+# gts is NOT defined here: oh-my-zsh's git plugin is deferred (`zinit wait`) and
+# defines its own `gts='git tag --sign'`, so a definition at this point loses the
+# race. It lives in that plugin's `atload` near the top of this file instead.
 alias gbc="git checkout -b"
 alias kconnect="kinit jonathan.hicks@QA.LOCAL"
 alias vi='nvim'
@@ -128,7 +139,12 @@ alias cp='cp -i'
 alias mv='mv -i'
 alias zshrc='${=EDITOR} ~/.zshrc'
 
-alias du='du -h'
+# NOTE: no `du` alias on purpose. `alias du='du -h'` used to live here, but the
+# global `-h` help alias below rewrote the line so `bat` swallowed the path
+# argument (`du /tmp` ran `bat ... /tmp`). It also made bare `du` non-POSIX,
+# defeating the "keep the classics classic" rule below. Readable disk usage is
+# `dust`'s job now; `du -sh *` already spells out -h itself (bundled flags are
+# unaffected by the global alias, same reason `ll="ls -lFh"` is safe).
 
 # lazygit — TUI over the git config in ~/.gitconfig (picks up delta as the pager).
 if command -v lazygit >/dev/null; then
