@@ -16,6 +16,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `config/git/ignore` | `~/.config/git/ignore` | Global gitignore |
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal config (Dracula) — macOS + Linux |
 | `config/op/artifactory.env` | `~/.config/op/artifactory.env` | **Work-specific** `op run` template — `op://` refs (no secrets) for `artenv`/Salesforce Artifactory; see [op](#1password-cli-op-multi-account) |
+| `claude/rules/cli-tools.md` | `~/.claude/rules/cli-tools.md` | Claude Code user-level rule — tells Claude which modern CLI tools to use; see [Claude Code rules](#claude-code-rules) |
 | `iterm/Dracula.itermcolors` | imported in iTerm2 | iTerm2 Dracula color preset (legacy macOS terminal) |
 | `iterm/com.googlecode.iterm2.plist` | iTerm2 prefs | iTerm2 preferences (legacy macOS terminal) |
 | `ssh/config.example` | — | Template (not symlinked) — two-GitHub-account SSH setup; see [SSH config](#ssh-config) |
@@ -23,7 +24,7 @@ The shared config files detect the OS at runtime (`uname`/`$OSTYPE`), so the sam
 | `windows/Microsoft.PowerShell_profile.ps1` | `$PROFILE.CurrentUserAllHosts` | **Windows** — PowerShell profile (prompt, PSReadLine, CLI aliases, op/curl/grpcurl); see [Windows](#windows) |
 | `windows/setup.ps1` | — | **Windows** — links the profile + shared configs, installs tools via winget |
 
-Files under `config/` mirror their destination under `~/.config/` (e.g. `config/bat/config` → `~/.config/bat/config`).
+Files under `config/` mirror their destination under `~/.config/` (e.g. `config/bat/config` → `~/.config/bat/config`), and files under `claude/` mirror `~/.claude/`.
 
 ## Modern CLI tools
 
@@ -58,6 +59,17 @@ Plus tools with no classic equivalent:
 > **`difftastic` does not replace `delta`.** `delta` stays the git pager (configured in `~/.gitconfig`, which is machine-local and not tracked here) for `log`/`show`/`diff`. `difft` diffs the *syntax tree*, so a reindent or a moved brace reports "No syntactic changes" where a line diff shows edits. It's wired as opt-in `dft`/`dfts` functions rather than git config, precisely so it doesn't take over the default path.
 
 > **Migrated off nvm:** the old `nvm` + `load-nvmrc` `chpwd` hook was removed from `.zshrc` — it slowed every directory change and duplicated Volta, which handles version switching automatically.
+
+### Claude Code rules
+
+`claude/rules/cli-tools.md` → `~/.claude/rules/cli-tools.md` teaches [Claude Code](https://claude.com/claude-code) to reach for the tools above (`yq` over `grep` on YAML, `hyperfine` over a bare `time`, `difft` for structural diffs, etc.) instead of the classics. Files in `~/.claude/rules/*.md` load into **every** Claude Code session in every project, so tracking this one here means the preferences follow me to a new machine along with the tools themselves.
+
+Two deliberate choices:
+
+- **It is a rule file, not `~/.claude/CLAUDE.md`.** That file is wholly managed by DevBar — it rewrites its own `devbar:optimized-tools` block (which already covers `rg`/`fd`/`sd`/`ast-grep`/`jq`/`bat`), so anything tracked there would eventually be clobbered. A separate user-level rule file sidesteps that entirely.
+- **It documents binary names, not the shell aliases.** Claude Code snapshots the shell at session start and doesn't reliably see `~/.zshrc` aliases, so the rule tells it to call `btop`/`batman`/`difft` directly rather than `top`/`man`/`dft`. It also warns which tools are TUIs (`lazygit`, `btop`, `k9s`) that would hang a non-interactive tool call.
+
+Only `.md` is discovered in that directory — a `.mdc` file (Cursor's extension) is ignored.
 
 ### HTTP / gRPC helpers
 

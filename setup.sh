@@ -407,6 +407,14 @@ link "config/bat/config"        "$HOME/.config/bat/config"
 link "config/git/ignore"        "$HOME/.config/git/ignore"
 link "config/ghostty/config"    "$HOME/.config/ghostty/config"
 
+# Claude Code user-level rules (claude/<x> mirrors ~/.claude/<x>). Files in
+# ~/.claude/rules/*.md load into every Claude Code session, in every project.
+#
+# Deliberately NOT ~/.claude/CLAUDE.md: that file is managed by DevBar (it
+# rewrites the devbar:optimized-tools block), so tracked content there would be
+# clobbered. A user-level rule file is separate and safe. Only .md is discovered.
+link "claude/rules/cli-tools.md" "$HOME/.claude/rules/cli-tools.md"
+
 # WORK-MACHINE ONLY: config/op/artifactory.env is an `op run` template of op://
 # references for my employer's Artifactory/Nexus registries (used by the `artenv`
 # helper in .zshrc). It's useless on a personal machine — nothing to point at —
