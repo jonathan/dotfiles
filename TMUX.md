@@ -100,6 +100,8 @@ Don't learn all 30 bindings at once:
 ## Plugins
 
 Managed by [tpm](https://github.com/tmux-plugins/tpm) (the `@plugin` lines at the bottom
-of `.tmux.conf`). Installed: tmux-sensible, tmux-resurrect, vim-tmux-navigator,
-dracula/tmux. If the resurrect saves/restores or other plugins don't respond, install
-them once with `<P> I`, or reload with `<P> r`.
+of `.tmux.conf`). Installed: tmux-sensible, tmux-resurrect, vim-tmux-navigator, and a
+personal fork of dracula/tmux (`jonathan/tmux` — upstream's `mac-player` script fails to
+compile if any one of its four hardcoded apps isn't installed; see the comment above the
+`@plugin` line in `.tmux.conf`). If the resurrect saves/restores or other plugins don't
+respond, install them once with `<P> I`, or reload with `<P> r`.
