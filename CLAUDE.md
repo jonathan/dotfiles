@@ -26,18 +26,18 @@ To apply a change you re-source or reload the relevant program rather than "runn
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal (Dracula) — both OSes |
 | `claude/rules/cli-tools.md` | `~/.claude/rules/cli-tools.md` | Claude Code user-level rule — modern-CLI-tool preferences |
 | `iterm/` | imported into iTerm2 | Dracula preset + prefs plist (legacy, macOS only) |
-| `setup.sh` | — | symlinks the above into `$HOME`; installs tools (`--brew`/`--apt`); `--tpm` clones tpm |
+| `setup.sh` | — | symlinks the above into `$HOME`; installs tools (`--brew`/`--apt`, includes tpack) |
 
 ## Installing / applying changes
 
-`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta), `--tpm` (clone the tmux plugin manager). After symlinking, changes in the repo take effect on the next shell/reload.
+`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta/tpack). After symlinking, changes in the repo take effect on the next shell/reload.
 
 ## Plugin managers (bootstrap chains)
 
 Each tool uses a different external plugin manager that must be installed before the config works. None are vendored here.
 
 - **zsh → zinit** (`~/.local/share/zinit/zinit.git`). `.zshrc` self-installs zinit if missing, then loads plugins via `zinit wait lucid for ...` (turbo/deferred — they load *after* the first prompt). Plugins: oh-my-zsh's git plugin (`OMZ::plugins/git/...`, for `gst`/`gco`-style aliases), `zsh-users/zsh-autosuggestions`, `zdharma-continuum/fast-syntax-highlighting`, `zsh-users/zsh-history-substring-search`, and docker/kubectl completions. The `OMZ::` snippets pull individual files from the oh-my-zsh repo — that is NOT the oh-my-zsh framework (which was removed for being a ~216ms fixed cost). The visible prompt is **oh-my-posh**, initialized near the bottom of `.zshrc` from `~/.jonathanhicks.omp.json`.
-- **tmux → tpm** (`~/.tmux/plugins/tpm`). Plugins are the `@plugin` lines near the bottom; install with prefix (`C-a`) + `I`.
+- **tmux → tpack** — a standalone binary (`brew install tpack` / `setup.sh --brew`/`--apt`), unlike tpm it isn't cloned into `~/.tmux/plugins/`. Plugins are still declared as `@plugin` lines near the bottom of `.tmux.conf`, same syntax as tpm; `run 'tpack init'` replaces tpm's `run '~/.tmux/plugins/tpm/tpm'`. Install/update plugins with prefix (`C-a`) + `I`, or browse via the `prefix` + `T` TUI.
 - **Neovim** — managed in its own repo (see below), not here.
 
 ## Things that bite

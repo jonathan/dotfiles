@@ -76,8 +76,8 @@ Both of tmux's vi/emacs-selectable modes are set to **vi**:
 - **`mode-keys vi`** — copy/scroll mode (the table above).
 - **`status-keys vi`** — the command prompt (`<P> :`): vi editing keys, not emacs.
 
-> Gotcha: `tmux-sensible` unconditionally force-sets `status-keys emacs`, and tpm runs
-> near the bottom of `.tmux.conf` — so `status-keys vi` is re-asserted *after* the tpm
+> Gotcha: `tmux-sensible` unconditionally force-sets `status-keys emacs`, and tpack runs
+> near the bottom of `.tmux.conf` — so `status-keys vi` is re-asserted *after* the tpack
 > `run` line to win. Don't move it back up top or the emacs default silently returns.
 
 Everything else (pane/window management) is prefix-based by tmux's design — that's not a
@@ -99,7 +99,7 @@ Don't learn all 30 bindings at once:
 
 ## Plugins
 
-Managed by [tpm](https://github.com/tmux-plugins/tpm) (the `@plugin` lines at the bottom
+Managed by [tpack](https://github.com/tmuxpack/tpack) (the `@plugin` lines at the bottom
 of `.tmux.conf`). Installed: tmux-sensible, tmux-resurrect, vim-tmux-navigator, and a
 personal fork of dracula/tmux (`jonathan/tmux` — upstream's `mac-player` script fails to
 compile if any one of its four hardcoded apps isn't installed; see the comment above the

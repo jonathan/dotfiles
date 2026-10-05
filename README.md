@@ -53,6 +53,7 @@ Plus tools with no classic equivalent:
 | [`hyperfine`](https://github.com/sharkdp/hyperfine) | statistical benchmarking (used for the startup numbers below) |
 | [`stern`](https://github.com/stern/stern) | tail logs across all pods matching a regex — `slog` / `slogn` |
 | [`kubectx`](https://github.com/ahmetb/kubectx) | switch kube context (`kctx`) / namespace (`kns`) |
+| [`tpack`](https://github.com/tmuxpack/tpack) | tmux plugin manager — standalone binary, drop-in for tpm |
 
 > **`dust` and `procs` are installed but deliberately not aliased over `du`/`ps`.** Their flags are incompatible with the invocations that are muscle memory (`du -sh *`, `ps aux`, `ps -ef`), so aliasing them would just produce errors. Same reasoning as leaving `curl`/`grpcurl` unaliased — new names alongside, not on top of. `btop` *is* aliased over `top`, since `top`'s flags aren't worth preserving (`command top` still reaches the real binary).
 
@@ -102,7 +103,7 @@ brew install zsh oh-my-posh neovim tmux git
 # Modern CLI tools used by the configs
 brew install fzf bat eza zoxide fd ripgrep volta grpcurl
 brew install yq hyperfine lazygit dust procs btop difftastic bat-extras \
-             stern kubectx
+             stern kubectx tpack
 
 # Terminal
 brew install --cask ghostty
@@ -131,7 +132,7 @@ sudo apt install -y btop du-dust hyperfine   # only on 22.04+ / Debian 12+
 #                   mikefarah/yq's release binary instead
 #   - procs      -> apt HAS a `procs` package, but it is a DIFFERENT tool;
 #                   install dalance/procs from GitHub releases
-#   - difftastic / lazygit / stern -> GitHub release binaries
+#   - difftastic / lazygit / stern / tpack -> GitHub release binaries
 #   - kubectx    -> shell scripts from the repo
 #   - bat-extras -> build.sh from the repo; needs a real `bat` on PATH, so
 #                   setup.sh symlinks batcat -> ~/.local/bin/bat first
@@ -153,15 +154,14 @@ This repo expects its files to live at the paths in the table above. The include
 git clone <this-repo> "$HOME/projects/dotfiles"
 cd "$HOME/projects/dotfiles"
 ./setup.sh                  # symlink dotfiles only (any OS)
-./setup.sh --brew --tpm     # macOS: brew-install the CLI tools + clone tpm
-./setup.sh --apt --tpm      # Ubuntu/Debian: apt+curl install the tools + clone tpm
+./setup.sh --brew           # macOS: brew-install the CLI tools (incl. tpack)
+./setup.sh --apt            # Ubuntu/Debian: apt+curl install the tools (incl. tpack)
 ```
 
 Flags (combinable):
 
 - `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus zinit
-- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras).
-- `--tpm` — clone [tpm](https://github.com/tmux-plugins/tpm), the tmux plugin manager
+- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras, tpack).
 - `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
 - `--ollama` — install [Ollama](https://ollama.com) and pull the local **DeepSeek** model Neovim talks to (`deepseek-coder-v2:16b`). Opt-in and separate from `--brew`/`--apt` because the model is several GB. See [Local LLM (Ollama + DeepSeek)](#local-llm-ollama--deepseek).
 
@@ -189,9 +189,10 @@ ln -sf "$HOME/projects/dotfiles/config/ghostty/config" "$HOME/.config/ghostty/co
 Then set up the editor and tmux plugins:
 
 - **Neovim** — clone the separate config repo (see [Neovim](#neovim) below). Plugins are managed there.
-- **tmux** — [tpm](https://github.com/tmux-plugins/tpm) (or pass `--tpm` to `setup.sh`):
+- **tmux** — [tpack](https://github.com/tmuxpack/tpack), a standalone binary (installed by `--brew`/`--apt`
+  above), or manually:
   ```sh
-  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+  brew install tpack
   ```
   Then inside tmux press prefix (`C-a`) + `I` to install plugins. For day-to-day
   bindings (sessions, splits, vim-pane navigation, copy mode), see the
@@ -430,7 +431,7 @@ git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim
 - https://github.com/nvim-lua/kickstart.nvim
 - https://ollama.com
 - https://github.com/olimorris/codecompanion.nvim
-- https://github.com/tmux-plugins/tpm
+- https://github.com/tmuxpack/tpack
 - https://github.com/junegunn/fzf
 - https://github.com/sharkdp/bat
 - https://www.nerdfonts.com

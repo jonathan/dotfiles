@@ -12,12 +12,11 @@
 #   ./setup.sh           # symlink the portable dotfiles only
 #   ./setup.sh --brew    # also install CLI tools via Homebrew (macOS or Linuxbrew)
 #   ./setup.sh --apt     # also install CLI tools via apt + curl (Ubuntu/Debian)
-#   ./setup.sh --tpm     # also clone tpm (tmux plugin manager) if missing
 #   ./setup.sh --work    # also link work-only configs (Salesforce Artifactory/Nexus
 #                        #   op-run template) — pointless on a personal machine
 #   ./setup.sh --ollama  # also install Ollama + pull the local DeepSeek model
 #                        #   used by Neovim (codecompanion) — several GB, opt-in
-# Flags can be combined, e.g.: ./setup.sh --brew --tpm --work
+# Flags can be combined, e.g.: ./setup.sh --brew --work
 
 set -euo pipefail
 
@@ -43,10 +42,11 @@ esac
 #   lazygit    -> git TUI (inherits the delta pager from ~/.gitconfig)
 #   stern / kubectx -> multi-pod log tailing + context/namespace switching
 #   bat-extras -> batman/batgrep/batdiff (bat-powered man, grep, diff)
+#   tpack      -> tmux plugin manager (standalone binary, replaces tpm)
 BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
   fzf bat eza zoxide fd ripgrep volta grpcurl \
   yq hyperfine lazygit dust procs btop difftastic bat-extras \
-  stern kubectx)
+  stern kubectx tpack)
 
 # The local DeepSeek model pulled by --ollama. Code-focused MoE; ~16GB+ RAM/VRAM.
 # Keep this name in sync with OLLAMA_DEFAULT_MODEL in .zshrc (and the codecompanion
@@ -56,14 +56,12 @@ OLLAMA_MODEL="deepseek-coder-v2:16b"
 # Parse flags
 DO_BREW=0
 DO_APT=0
-DO_TPM=0
 DO_WORK=0
 DO_OLLAMA=0
 for arg in "$@"; do
   case "$arg" in
     --brew)   DO_BREW=1 ;;
     --apt)    DO_APT=1 ;;
-    --tpm)    DO_TPM=1 ;;
     --work)   DO_WORK=1 ;;
     --ollama) DO_OLLAMA=1 ;;
     *) printf 'unknown flag: %s\n' "$arg" >&2; exit 2 ;;
@@ -267,6 +265,20 @@ if [ "$DO_APT" = "1" ]; then
     fi
   fi
 
+  # tpack: not in apt — prebuilt Go binary from GitHub releases (tmux plugin
+  # manager, replaces tpm). Asset name keeps the leading v off the version.
+  if ! command -v tpack >/dev/null; then
+    echo "Installing tpack from GitHub releases..."
+    _tag="$(gh_latest_tag tmuxpack/tpack)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest tpack release — skipping"
+    else
+      curl -fsSL "https://github.com/tmuxpack/tpack/releases/download/${_tag}/tpack_${_tag#v}_linux_$(arch_as go).tar.gz" \
+        | sudo tar -xz -C /usr/local/bin tpack \
+        || echo "  ! tpack install failed — skipping"
+    fi
+  fi
+
   # kubectx/kubens: shell scripts, no compiled binary — install from the repo.
   if ! command -v kubectx >/dev/null; then
     echo "Installing kubectx/kubens..."
@@ -424,17 +436,6 @@ if [ "$DO_WORK" = "1" ]; then
   link "config/op/artifactory.env" "$HOME/.config/op/artifactory.env"
 fi
 
-# Optional: tmux plugin manager
-if [ "$DO_TPM" = "1" ]; then
-  if [ -d "$HOME/.tmux/plugins/tpm" ]; then
-    echo "tpm already installed"
-  else
-    echo "Cloning tpm..."
-    git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
-    echo "tpm installed — open tmux and press prefix (C-a) + I to install plugins"
-  fi
-fi
-
 # Final guidance — tailored to the detected OS.
 echo
 echo "Done. Remaining manual steps:"
@@ -442,6 +443,7 @@ echo "  - Open a new shell (or: source ~/.zshrc) to pick up the zsh config"
 echo "  - Make zsh your login shell if it isn't:  chsh -s \"\$(command -v zsh)\""
 echo "  - Neovim config is a separate repo:"
 echo "      git clone git@github.com-personal:jonathan/kickstart.nvim.git ~/.config/nvim"
+echo "  - tmux: open tmux and press prefix (C-a) + I to install plugins via tpack"
 if [ "$DO_OLLAMA" = "1" ]; then
   echo "  - DeepSeek/Ollama: ensure the server is running ('ollama serve' on macOS;"
   echo "    systemd service on Linux). The codecompanion adapter lives in the nvim"
