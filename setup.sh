@@ -43,10 +43,15 @@ esac
 #   stern / kubectx -> multi-pod log tailing + context/namespace switching
 #   bat-extras -> batman/batgrep/batdiff (bat-powered man, grep, diff)
 #   tpack      -> tmux plugin manager (standalone binary, replaces tpm)
+#   tree-sitter-cli -> `tree-sitter` CLI nvim-treesitter's `main` branch shells
+#     out to for `:TSUpdate`/`:TSInstall`. Deliberately the brew formula (not
+#     cargo) so the binary lands in /opt/homebrew/bin next to `nvim` itself —
+#     guaranteed on PATH wherever nvim launches from. The plain `tree-sitter`
+#     brew formula only ships the library now; the CLI is a separate formula.
 BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
   fzf bat eza zoxide fd ripgrep volta grpcurl \
   yq hyperfine lazygit dust procs btop difftastic bat-extras \
-  stern kubectx tpack)
+  stern kubectx tpack tree-sitter-cli)
 
 # The local DeepSeek model pulled by --ollama. Code-focused MoE; ~16GB+ RAM/VRAM.
 # Keep this name in sync with OLLAMA_DEFAULT_MODEL in .zshrc (and the codecompanion
@@ -122,10 +127,11 @@ gh_latest_tag() {
 }
 
 # arch_as <style> -> this machine's arch in the naming style a project uses.
-# Three styles because release-asset naming is not consistent across projects:
+# Four styles because release-asset naming is not consistent across projects:
 #   go    -> amd64  / arm64     (stern)
 #   rust  -> x86_64 / aarch64   (difftastic, procs)
 #   mixed -> x86_64 / arm64     (lazygit — Go project, Rust-ish arch names)
+#   node  -> x64    / arm64     (tree-sitter-cli)
 arch_as() {
   local m; m="$(uname -m)"
   case "$1:$m" in
@@ -135,6 +141,8 @@ arch_as() {
     rust:aarch64|rust:arm64)   printf 'aarch64' ;;
     mixed:x86_64|mixed:amd64)  printf 'x86_64' ;;
     mixed:aarch64|mixed:arm64) printf 'arm64' ;;
+    node:x86_64|node:amd64)    printf 'x64' ;;
+    node:aarch64|node:arm64)   printf 'arm64' ;;
     *) printf '%s' "$m" ;;
   esac
 }
@@ -235,6 +243,25 @@ if [ "$DO_APT" = "1" ]; then
       curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${_tag}/difft-$(arch_as rust)-unknown-linux-gnu.tar.gz" \
         | sudo tar -xz -C /usr/local/bin difft \
         || echo "  ! difftastic install failed — skipping (dft/dfts unavailable)"
+    fi
+  fi
+
+  # tree-sitter-cli: not in apt — prebuilt binary from GitHub releases. Needed
+  # by Neovim's nvim-treesitter (`main` branch) to build parsers on
+  # `:TSUpdate`/`:TSInstall`; without it on PATH that fails with ENOENT.
+  # Asset is a single binary gzipped directly (no tarball), named
+  # tree-sitter-linux-<arch>.gz.
+  if ! command -v tree-sitter >/dev/null; then
+    echo "Installing tree-sitter-cli from GitHub releases..."
+    _tag="$(gh_latest_tag tree-sitter/tree-sitter)"
+    if [ -z "$_tag" ]; then
+      echo "  ! could not resolve latest tree-sitter-cli release — skipping"
+    else
+      curl -fsSL "https://github.com/tree-sitter/tree-sitter/releases/download/${_tag}/tree-sitter-linux-$(arch_as node).gz" \
+        | sudo gunzip -c > /tmp/tree-sitter \
+        && sudo install -m755 /tmp/tree-sitter /usr/local/bin/tree-sitter \
+        && rm -f /tmp/tree-sitter \
+        || echo "  ! tree-sitter-cli install failed — skipping (:TSUpdate will fail)"
     fi
   fi
 

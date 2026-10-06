@@ -26,11 +26,11 @@ To apply a change you re-source or reload the relevant program rather than "runn
 | `config/ghostty/config` | `~/.config/ghostty/config` | Ghostty terminal (Dracula) — both OSes |
 | `claude/rules/cli-tools.md` | `~/.claude/rules/cli-tools.md` | Claude Code user-level rule — modern-CLI-tool preferences |
 | `iterm/` | imported into iTerm2 | Dracula preset + prefs plist (legacy, macOS only) |
-| `setup.sh` | — | symlinks the above into `$HOME`; installs tools (`--brew`/`--apt`, includes tpack) |
+| `setup.sh` | — | symlinks the above into `$HOME`; installs tools (`--brew`/`--apt`, includes tpack, tree-sitter-cli) |
 
 ## Installing / applying changes
 
-`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta/tpack). After symlinking, changes in the repo take effect on the next shell/reload.
+`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta/tpack/tree-sitter-cli). After symlinking, changes in the repo take effect on the next shell/reload.
 
 ## Plugin managers (bootstrap chains)
 

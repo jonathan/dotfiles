@@ -54,6 +54,7 @@ Plus tools with no classic equivalent:
 | [`stern`](https://github.com/stern/stern) | tail logs across all pods matching a regex — `slog` / `slogn` |
 | [`kubectx`](https://github.com/ahmetb/kubectx) | switch kube context (`kctx`) / namespace (`kns`) |
 | [`tpack`](https://github.com/tmuxpack/tpack) | tmux plugin manager — standalone binary, drop-in for tpm |
+| [`tree-sitter-cli`](https://github.com/tree-sitter/tree-sitter) | `tree-sitter` CLI — Neovim's nvim-treesitter (`main` branch) shells out to it on `:TSUpdate`/`:TSInstall` |
 
 > **`dust` and `procs` are installed but deliberately not aliased over `du`/`ps`.** Their flags are incompatible with the invocations that are muscle memory (`du -sh *`, `ps aux`, `ps -ef`), so aliasing them would just produce errors. Same reasoning as leaving `curl`/`grpcurl` unaliased — new names alongside, not on top of. `btop` *is* aliased over `top`, since `top`'s flags aren't worth preserving (`command top` still reaches the real binary).
 
@@ -103,7 +104,7 @@ brew install zsh oh-my-posh neovim tmux git
 # Modern CLI tools used by the configs
 brew install fzf bat eza zoxide fd ripgrep volta grpcurl
 brew install yq hyperfine lazygit dust procs btop difftastic bat-extras \
-             stern kubectx tpack
+             stern kubectx tpack tree-sitter-cli
 
 # Terminal
 brew install --cask ghostty
@@ -132,7 +133,7 @@ sudo apt install -y btop du-dust hyperfine   # only on 22.04+ / Debian 12+
 #                   mikefarah/yq's release binary instead
 #   - procs      -> apt HAS a `procs` package, but it is a DIFFERENT tool;
 #                   install dalance/procs from GitHub releases
-#   - difftastic / lazygit / stern / tpack -> GitHub release binaries
+#   - difftastic / lazygit / stern / tpack / tree-sitter-cli -> GitHub release binaries
 #   - kubectx    -> shell scripts from the repo
 #   - bat-extras -> build.sh from the repo; needs a real `bat` on PATH, so
 #                   setup.sh symlinks batcat -> ~/.local/bin/bat first
@@ -161,7 +162,7 @@ cd "$HOME/projects/dotfiles"
 Flags (combinable):
 
 - `--brew` — install the tools from [Prerequisites](#prerequisites) via Homebrew (macOS or Linuxbrew), plus zinit
-- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras, tpack).
+- `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras, tpack, tree-sitter-cli).
 - `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
 - `--ollama` — install [Ollama](https://ollama.com) and pull the local **DeepSeek** model Neovim talks to (`deepseek-coder-v2:16b`). Opt-in and separate from `--brew`/`--apt` because the model is several GB. See [Local LLM (Ollama + DeepSeek)](#local-llm-ollama--deepseek).
 
