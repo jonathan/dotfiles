@@ -21,6 +21,10 @@ source "${ZINIT_HOME}/zinit.zsh"
 # --- Editor / shell options (set early so they apply regardless of defers) ---
 export EDITOR='nvim'
 
+# Opt out of tool telemetry. DO_NOT_TRACK is the cross-tool convention; Octomind
+# and oh-my-openagent (OmO) both honor it. Not a security control — just a default.
+export DO_NOT_TRACK=1
+
 # History
 setopt HIST_IGNORE_ALL_DUPS
 HISTFILE=~/.histfile
