@@ -16,6 +16,9 @@
 #                        #   op-run template) — pointless on a personal machine
 #   ./setup.sh --ollama  # also install Ollama + pull the local DeepSeek model
 #                        #   used by Neovim (codecompanion) — several GB, opt-in
+#   ./setup.sh --octomind # also install Octomind (+ octofs) and Ollama, pull a
+#                        #   local NVIDIA Nemotron model, and point Octomind at it
+#                        #   (telemetry off) — ~20GB download, opt-in
 # Flags can be combined, e.g.: ./setup.sh --brew --work
 
 set -euo pipefail
@@ -58,17 +61,28 @@ BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
 # adapter in the separate nvim repo, which reads that env var).
 OLLAMA_MODEL="deepseek-coder-v2:16b"
 
+# The local model --octomind pulls and points Octomind at. Deliberately NOT a
+# Chinese-lab model (work policy): NVIDIA's Nemotron 3.5 Lightning, a 30B MoE
+# (3B active) with tool-calling + thinking, ~19-25GB. Override per run with
+# OCTOMIND_OLLAMA_MODEL=<tag> ./setup.sh --octomind. Octomind talks to a derived
+# "<model>-64k" tag (same weights, num_ctx baked in) so its 40k-token compression
+# threshold always fits in the context window.
+OCTOMIND_OLLAMA_MODEL="${OCTOMIND_OLLAMA_MODEL:-nemotron-3.5-lightning}"
+OCTOMIND_LOCAL_MODEL="${OCTOMIND_OLLAMA_MODEL}-64k"
+
 # Parse flags
 DO_BREW=0
 DO_APT=0
 DO_WORK=0
 DO_OLLAMA=0
+DO_OCTOMIND=0
 for arg in "$@"; do
   case "$arg" in
-    --brew)   DO_BREW=1 ;;
-    --apt)    DO_APT=1 ;;
-    --work)   DO_WORK=1 ;;
-    --ollama) DO_OLLAMA=1 ;;
+    --brew)     DO_BREW=1 ;;
+    --apt)      DO_APT=1 ;;
+    --work)     DO_WORK=1 ;;
+    --ollama)   DO_OLLAMA=1 ;;
+    --octomind) DO_OCTOMIND=1 ;;
     *) printf 'unknown flag: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -402,7 +416,7 @@ fi
 # serves an OpenAI-compatible API on localhost:11434; the nvim adapter and the
 # `ai` helper in .zshrc point at that. The model name lives in $OLLAMA_MODEL
 # above (mirror it in .zshrc's OLLAMA_DEFAULT_MODEL).
-if [ "$DO_OLLAMA" = "1" ]; then
+if [ "$DO_OLLAMA" = "1" ] || [ "$DO_OCTOMIND" = "1" ]; then
   if ! command -v ollama >/dev/null; then
     echo "Installing Ollama..."
     if [ "$OS" = "macos" ]; then
@@ -421,13 +435,109 @@ if [ "$DO_OLLAMA" = "1" ]; then
     echo "Ollama already installed."
   fi
 
-  # Pull the model. Needs the server running; nudge it on macos/brew where the
-  # daemon isn't automatic. (On Linux the installer's systemd service is up.)
-  if command -v ollama >/dev/null; then
+  # Pull the Neovim (DeepSeek) model — only for --ollama, not --octomind. Needs
+  # the server running; nudge it on macos/brew where the daemon isn't automatic.
+  # (On Linux the installer's systemd service is up.)
+  if [ "$DO_OLLAMA" = "1" ] && command -v ollama >/dev/null; then
     echo "Pulling $OLLAMA_MODEL (this is several GB)..."
     if ! ollama pull "$OLLAMA_MODEL"; then
       echo "  ! pull failed — is the server running? Try 'ollama serve' then:" >&2
       echo "      ollama pull $OLLAMA_MODEL" >&2
+    fi
+  fi
+  echo
+fi
+
+# Optional: Octomind (https://octomind.run) — a Rust coding-agent harness —
+# wired to a local Ollama model. Opt-in: the model is ~20GB.
+#
+# Octomind's file tools run through a separate `octofs` binary (built-in MCP
+# server ref); without it every session dies at startup.
+#
+# Config is patched from Octomind's own generated default (octomind config) so
+# it tracks upstream instead of vendoring a 400-line TOML. Each substitution only
+# matches an untouched default, so re-running is a no-op and never clobbers edits.
+#
+# CORPORATE-NETWORK CAVEAT: Octomind is rustls + the macOS system trust store; it
+# ignores SSL_CERT_FILE/NODE_EXTRA_CA_CERTS. Behind a TLS-intercepting proxy it
+# fails with "invalid peer certificate: UnknownIssuer" for hosted providers
+# unless the corporate CA is in the OS trust store. Local Ollama (plain http on
+# localhost) is unaffected, which is why this flag targets it.
+if [ "$DO_OCTOMIND" = "1" ]; then
+  if ! command -v octomind >/dev/null; then
+    echo "Installing Octomind..."
+    if command -v brew >/dev/null; then
+      # Newer Homebrew refuses third-party taps until trusted. Deliberately NOT
+      # auto-trusted here — that's a security decision; the hint tells you how.
+      brew install muvon/tap/octomind muvon/tap/octofs || {
+        echo "  ! brew install failed. If it says 'untrusted tap', review the tap then:" >&2
+        echo "      brew trust muvon/tap && brew install muvon/tap/octomind muvon/tap/octofs" >&2
+      }
+    else
+      curl -fsSL https://raw.githubusercontent.com/muvon/octomind/master/install.sh | bash \
+        || echo "  ! Octomind install script failed — see https://github.com/muvon/octomind" >&2
+    fi
+  else
+    echo "Octomind already installed."
+  fi
+  command -v octofs >/dev/null \
+    || echo "  ! octofs not found on PATH — Octomind sessions will fail until it's installed" >&2
+
+  # Make sure the Ollama server is up (brew installs it without starting it).
+  if command -v ollama >/dev/null; then
+    if ! curl -sf -m 2 http://localhost:11434/api/version >/dev/null; then
+      if [ "$OS" = "macos" ] && command -v brew >/dev/null; then
+        brew services start ollama >/dev/null 2>&1 || true
+      fi
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        curl -sf -m 2 http://localhost:11434/api/version >/dev/null && break
+        sleep 1
+      done
+    fi
+
+    echo "Pulling $OCTOMIND_OLLAMA_MODEL (~20GB)..."
+    if ollama pull "$OCTOMIND_OLLAMA_MODEL"; then
+      _mf="$(mktemp)"
+      printf 'FROM %s\nPARAMETER num_ctx 65536\n' "$OCTOMIND_OLLAMA_MODEL" > "$_mf"
+      ollama create "$OCTOMIND_LOCAL_MODEL" -f "$_mf" \
+        || echo "  ! could not create $OCTOMIND_LOCAL_MODEL" >&2
+      rm -f "$_mf"
+    else
+      echo "  ! pull failed — is the server running? Try 'ollama serve' then re-run." >&2
+    fi
+  fi
+
+  if command -v octomind >/dev/null; then
+    _cfg="${OCTOMIND_DATA_DIR:-$HOME/.local/share/octomind}/config/config.toml"
+    [ -f "$_cfg" ] || octomind config >/dev/null 2>&1 || true
+    if [ -f "$_cfg" ]; then
+      # One-time backup before the first patch (only if a default is still present).
+      if grep -qE '^telemetry = true|"octohub:auto"' "$_cfg" && [ ! -e "$_cfg.pre-setup" ]; then
+        cp -p "$_cfg" "$_cfg.pre-setup"
+      fi
+      # sed -i.tmp is the form that works on both BSD (macOS) and GNU sed.
+      #  - telemetry off (both keys)
+      #  - main / compression / supervisor models -> the local 64k tag
+      #  - compression threshold 70k -> 40k so it fits the 64k context
+      #  - supervisor off: with it on, sessions didn't exit cleanly against local
+      #    Ollama (some requests 500'd) in testing; off exits cleanly
+      sed -i.tmp \
+        -e 's|^telemetry = true|telemetry = false|' \
+        -e "s|^name = \"octohub:auto\"|name = \"local:${OCTOMIND_LOCAL_MODEL}\"|" \
+        -e 's|^threshold = 70000|threshold = 40000|' \
+        -e '/^\[supervisor\]$/,/^enabled = /s/^enabled = true/enabled = false/' \
+        "$_cfg"
+      # The shipped default defines a `context_gatherer` sub-agent whose role
+      # doesn't exist, so the model delegating to it errors out. Drop that block.
+      if grep -q 'octomind acp context_gatherer' "$_cfg"; then
+        sed -i.tmp '/^\[\[agents\]\]$/,/^workdir = "\."$/d' "$_cfg"
+      fi
+      rm -f "$_cfg.tmp"
+      if octomind config --validate >/dev/null 2>&1; then
+        echo "Octomind config patched + valid: $_cfg"
+      else
+        echo "  ! Octomind config failed validation — original saved as $_cfg.pre-setup" >&2
+      fi
     fi
   fi
   echo
@@ -475,6 +585,12 @@ if [ "$DO_OLLAMA" = "1" ]; then
   echo "  - DeepSeek/Ollama: ensure the server is running ('ollama serve' on macOS;"
   echo "    systemd service on Linux). The codecompanion adapter lives in the nvim"
   echo "    repo above and reads \$OLLAMA_DEFAULT_MODEL ($OLLAMA_MODEL)."
+fi
+if [ "$DO_OCTOMIND" = "1" ]; then
+  echo "  - Octomind: run 'octomind run assistant' (model: local:$OCTOMIND_LOCAL_MODEL)."
+  echo "    The Ollama server must be running ('brew services start ollama' on macOS)."
+  echo "    Hosted providers fail behind a TLS-intercepting proxy — see the note above"
+  echo "    the Octomind block in setup.sh."
 fi
 if [ "$OS" = "macos" ]; then
   echo "  - Terminal: Ghostty reads ~/.config/ghostty/config (Dracula, just linked)."
