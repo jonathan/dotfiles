@@ -165,7 +165,7 @@ Flags (combinable):
 - `--apt` — install the tools via apt + curl installers (Ubuntu/Debian), plus zinit. Handles the not-in-apt tools (eza, current neovim, oh-my-posh, volta, grpcurl, yq, procs, difftastic, lazygit, stern, kubectx, bat-extras, tpack, tree-sitter-cli).
 - `--work` — also link **work-only** configs (the Salesforce Artifactory/Nexus `op run` template). Skip this on a personal machine — it points at work vault items that don't exist there. The portable configs are linked either way.
 - `--ollama` — install [Ollama](https://ollama.com) and pull the local **DeepSeek** model Neovim talks to (`deepseek-coder-v2:16b`). Opt-in and separate from `--brew`/`--apt` because the model is several GB. See [Local LLM (Ollama + DeepSeek)](#local-llm-ollama--deepseek).
-- `--octomind` — install [Octomind](https://octomind.run) (+ its `octofs` helper) and Ollama, pull NVIDIA's `nemotron-3.5-lightning` (~20GB), and point Octomind at it with telemetry off. Opt-in. See [Local agent (Octomind + Ollama)](#local-agent-octomind--ollama).
+- `--octomind` — install [Octomind](https://octomind.run) (+ its `octofs` helper) and Ollama, pull Mistral's `devstral:24b` (~14GB), and point Octomind at it with telemetry off. Opt-in. See [Local agent (Octomind + Ollama)](#local-agent-octomind--ollama).
 
 The script detects the OS and resolves the repo from its own location, so it works wherever you clone it.
 
@@ -417,16 +417,17 @@ Ollama serves an OpenAI-compatible API on `localhost:11434`. The server must be 
 
 ## Local agent (Octomind + Ollama)
 
-`./setup.sh --octomind` sets up [Octomind](https://octomind.run), a Rust coding-agent harness, running against a local model — nothing leaves the machine. It installs Octomind and `octofs` (brew `muvon/tap`, or Octomind's install script without brew) plus Ollama, pulls **`nemotron-3.5-lightning`** (NVIDIA; 30B MoE with 3B active, tools + thinking; budget ~25GB+ RAM) and creates a `-64k` variant with the context window baked in. Override the model with `OCTOMIND_OLLAMA_MODEL=<tag> ./setup.sh --octomind`. The model deliberately isn't from a Chinese lab (work policy).
+`./setup.sh --octomind` sets up [Octomind](https://octomind.run), a Rust coding-agent harness, running against a local model — nothing leaves the machine. It installs Octomind and `octofs` (brew `muvon/tap`, or Octomind's install script without brew) plus Ollama, pulls **`devstral:24b`** (Mistral's 24B dense coding-agent model; tools, no thinking mode; ~14GB at 4-bit) and creates a `devstral-24b-64k` variant with the context window baked in (`:` becomes `-` in the derived name). Override the model with `OCTOMIND_OLLAMA_MODEL=<tag> ./setup.sh --octomind`. Dense was chosen over a 3B-active MoE (Nemotron), which skimmed and misread files on an audit task; Devstral is also non-Chinese, so it's fine under the work policy.
 
 Octomind's config isn't vendored. The script generates Octomind's own default (`octomind config`) and patches it — each edit only matches an untouched default, so re-running is safe and never overwrites your changes (original kept as `config.toml.pre-setup`):
 
 - telemetry off; main / compression / supervisor model → `local:<model>-64k`
 - compression threshold 70k → 40k tokens (so it fits the 64k context)
+- `reasoning_effort` medium/high → `none` (override with `OCTOMIND_REASONING=medium` for a thinking model) — Ollama rejects a thinking request for a non-thinking model with `does not support thinking`
 - supervisor **off** — with it on, sessions didn't exit cleanly against local Ollama in testing
 - drop the shipped `context_gatherer` sub-agent, whose role doesn't exist (the model delegates to it and errors)
 
-Caveats: the Nemotron model was **not** exercised end-to-end here (the testing above used a different model, since removed), so treat tool-calling quality as unverified. Newer Homebrew refuses untrusted taps — if `brew install muvon/tap/...` complains, review the tap and `brew trust muvon/tap` yourself; the script won't. And on a TLS-intercepting corporate network, Octomind can't reach *hosted* providers: it uses rustls + the macOS system trust store and ignores `SSL_CERT_FILE`/`NODE_EXTRA_CA_CERTS`, so you get `invalid peer certificate: UnknownIssuer` unless the corporate CA is in the OS trust store. Local Ollama over plain `http://localhost` is unaffected.
+Caveats: Devstral ran on a 32GB M1 (Pro/Max) but **slowly**, and the script's patch logic is untested on that machine beyond a manual `reasoning_effort` fix — treat both as unverified. If it's slow, check `ollama ps`: a `PROCESSOR` column showing a CPU/GPU split means the model plus 64k KV cache doesn't fit in the GPU's share of unified memory. Newer Homebrew refuses untrusted taps — if `brew install muvon/tap/...` complains, review the tap and `brew trust muvon/tap` yourself; the script won't. And on a TLS-intercepting corporate network, Octomind can't reach *hosted* providers: it uses rustls + the macOS system trust store and ignores `SSL_CERT_FILE`/`NODE_EXTRA_CA_CERTS`, so you get `invalid peer certificate: UnknownIssuer` unless the corporate CA is in the OS trust store. Local Ollama over plain `http://localhost` is unaffected.
 
 ## Neovim
 

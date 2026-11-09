@@ -61,14 +61,22 @@ BREW_PACKAGES=(zsh oh-my-posh neovim tmux git \
 # adapter in the separate nvim repo, which reads that env var).
 OLLAMA_MODEL="deepseek-coder-v2:16b"
 
-# The local model --octomind pulls and points Octomind at. Deliberately NOT a
-# Chinese-lab model (work policy): NVIDIA's Nemotron 3.5 Lightning, a 30B MoE
-# (3B active) with tool-calling + thinking, ~19-25GB. Override per run with
-# OCTOMIND_OLLAMA_MODEL=<tag> ./setup.sh --octomind. Octomind talks to a derived
-# "<model>-64k" tag (same weights, num_ctx baked in) so its 40k-token compression
-# threshold always fits in the context window.
-OCTOMIND_OLLAMA_MODEL="${OCTOMIND_OLLAMA_MODEL:-nemotron-3.5-lightning}"
-OCTOMIND_LOCAL_MODEL="${OCTOMIND_OLLAMA_MODEL}-64k"
+# The local model --octomind pulls and points Octomind at: Mistral's Devstral
+# Small, a 24B dense coding-agent model (~14GB at 4-bit) with tool calling but NO
+# thinking mode. Non-Chinese-lab, so it's also fine under the work policy. Dense
+# was chosen over a 3B-active MoE (Nemotron) because the MoE skimmed/misread files
+# on an audit task. Override per run with OCTOMIND_OLLAMA_MODEL=<tag>
+# ./setup.sh --octomind. Octomind talks to a derived "<model>-64k" tag (same
+# weights, num_ctx baked in) so its 40k-token compression threshold always fits in
+# the context window. The ':' in the tag becomes '-' (devstral:24b ->
+# devstral-24b-64k) to keep the derived name free of a mid-name tag separator.
+OCTOMIND_OLLAMA_MODEL="${OCTOMIND_OLLAMA_MODEL:-devstral:24b}"
+OCTOMIND_LOCAL_MODEL="${OCTOMIND_OLLAMA_MODEL//:/-}-64k"
+# Octomind's default config sends reasoning_effort = "medium"; Ollama rejects that
+# for models without a thinking mode ("does not support thinking"). Devstral
+# doesn't think, so default to "none". For a thinking model (e.g. Qwen3,
+# Nemotron) run with OCTOMIND_REASONING=medium.
+OCTOMIND_REASONING="${OCTOMIND_REASONING:-none}"
 
 # Parse flags
 DO_BREW=0
@@ -449,7 +457,7 @@ if [ "$DO_OLLAMA" = "1" ] || [ "$DO_OCTOMIND" = "1" ]; then
 fi
 
 # Optional: Octomind (https://octomind.run) — a Rust coding-agent harness —
-# wired to a local Ollama model. Opt-in: the model is ~20GB.
+# wired to a local Ollama model. Opt-in: the default model is ~14GB.
 #
 # Octomind's file tools run through a separate `octofs` binary (built-in MCP
 # server ref); without it every session dies at startup.
@@ -495,7 +503,7 @@ if [ "$DO_OCTOMIND" = "1" ]; then
       done
     fi
 
-    echo "Pulling $OCTOMIND_OLLAMA_MODEL (~20GB)..."
+    echo "Pulling $OCTOMIND_OLLAMA_MODEL (~14GB for the default)..."
     if ollama pull "$OCTOMIND_OLLAMA_MODEL"; then
       _mf="$(mktemp)"
       printf 'FROM %s\nPARAMETER num_ctx 65536\n' "$OCTOMIND_OLLAMA_MODEL" > "$_mf"
@@ -521,9 +529,13 @@ if [ "$DO_OCTOMIND" = "1" ]; then
       #  - compression threshold 70k -> 40k so it fits the 64k context
       #  - supervisor off: with it on, sessions didn't exit cleanly against local
       #    Ollama (some requests 500'd) in testing; off exits cleanly
-      sed -i.tmp \
+      #  - reasoning_effort medium/high -> $OCTOMIND_REASONING (default none): Ollama
+      #    rejects a thinking request for non-thinking models like Devstral
+      #  (-E for the medium|high alternation; '#' delimiter since '|' is in it.)
+      sed -E -i.tmp \
         -e 's|^telemetry = true|telemetry = false|' \
         -e "s|^name = \"octohub:auto\"|name = \"local:${OCTOMIND_LOCAL_MODEL}\"|" \
+        -e "s#^reasoning_effort = \"(medium|high)\"#reasoning_effort = \"${OCTOMIND_REASONING}\"#" \
         -e 's|^threshold = 70000|threshold = 40000|' \
         -e '/^\[supervisor\]$/,/^enabled = /s/^enabled = true/enabled = false/' \
         "$_cfg"

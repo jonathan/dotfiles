@@ -30,7 +30,7 @@ To apply a change you re-source or reload the relevant program rather than "runn
 
 ## Installing / applying changes
 
-`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta/tpack/tree-sitter-cli). Also opt-in: `--ollama` (Ollama + the Neovim DeepSeek model) and `--octomind` (Octomind + `octofs` + Ollama + a local Nemotron model, config patched from Octomind's generated default — see the README's "Local agent" section). After symlinking, changes in the repo take effect on the next shell/reload.
+`./setup.sh` symlinks every tracked dotfile into `$HOME`, backing up existing real files to `<file>.bak`. It's idempotent, detects the OS (`uname`), and resolves the repo from its own location. Flags: `--brew` (macOS/Linuxbrew tool install), `--apt` (Ubuntu/Debian tool install via apt + curl, handling the not-in-apt tools eza/neovim/oh-my-posh/volta/tpack/tree-sitter-cli). Also opt-in: `--ollama` (Ollama + the Neovim DeepSeek model) and `--octomind` (Octomind + `octofs` + Ollama + a local Devstral model, config patched from Octomind's generated default — see the README's "Local agent" section). After symlinking, changes in the repo take effect on the next shell/reload.
 
 ## Plugin managers (bootstrap chains)
 
