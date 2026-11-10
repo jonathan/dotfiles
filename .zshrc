@@ -353,6 +353,31 @@ fi
 # sources (git remote + ~/.config/gh/hosts.yml) and only shelling out to the
 # slow `gh auth switch` when they actually differ. `command gh` calls the real
 # binary, preventing the wrapper from recursing into itself.
+# --- DevBar CA-bundle workaround (gh / git / curl) --------------------------
+# DevBar exports SSL_CERT_FILE -> ~/.devbar/certs/corporate-ca-bundle.pem, a
+# corporate-only bundle that lacks the public roots GitHub's Sectigo chain needs
+# (gh: "x509: certificate signed by unknown authority", surfacing as a bogus
+# "token is invalid"; curl can fail outright if the value has a literal `~`).
+# The system roots work, so run these tools WITHOUT the variable instead of
+# editing it (DevBar owns it and may rewrite it).
+#   - Strips ONLY when it points at that DevBar bundle; any other value (e.g. a
+#     deliberate proxy CA on another machine) and the unset case pass through
+#     untouched, so this is a no-op everywhere DevBar isn't installed.
+#   - `env <cmd>` execs the real binary from PATH, not the same-named function
+#     below, so the wrappers can't recurse. (`env ... command x` would NOT work:
+#     `command` is a builtin.)
+_nodevbar_ca() {
+  if [[ "$SSL_CERT_FILE" == */.devbar/certs/corporate-ca-bundle.pem ]]; then
+    env -u SSL_CERT_FILE "$@"
+  else
+    env "$@"
+  fi
+}
+# Guarded on the real binary ($commands only lists executables, not functions)
+# so `command -v git|curl` elsewhere in this file still means "installed".
+(( $+commands[git] ))  && git()  { _nodevbar_ca git  "$@"; }
+(( $+commands[curl] )) && curl() { _nodevbar_ca curl "$@"; }
+
 if command -v gh >/dev/null; then
   # Map this repo's origin remote -> the gh account that should be active.
   # Adjust the account names here if yours differ (see `gh auth status`).
@@ -380,9 +405,10 @@ if command -v gh >/dev/null; then
   }
 
   # Wrapper: align the account, then run the real gh with all original args.
+  # _nodevbar_ca (defined above) drops DevBar's CA bundle for this one command.
   gh() {
     ghsync
-    command gh "$@"
+    _nodevbar_ca gh "$@"
   }
 fi
 
