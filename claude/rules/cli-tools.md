@@ -60,6 +60,12 @@ on their own; launching one in a non-interactive shell hangs the call. Same for
 `stern` without `--no-follow`. If a TUI is genuinely the best answer, tell me to
 run it myself rather than invoking it.
 
+## `gh` wrapper noise
+
+My shell wraps `gh` and prints `_gh_account_for_repo: command not found` on stderr
+(broken wrapper; the command itself still works). Redirect stderr (`2>/dev/null`)
+before piping `gh` output into `jq`, and don't treat that line as a failure.
+
 ## Not aliased on purpose
 
 `dust` and `procs` are installed but deliberately NOT aliased over `du`/`ps` in my
